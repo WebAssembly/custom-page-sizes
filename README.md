@@ -1,3 +1,17 @@
+# Custom Page Sizes Proposal for WebAssembly
+
+This repository is a clone of
+[`WebAssembly/spec`](https://github.com/WebAssembly/spec/). It is meant for
+discussion, prototype specification, and implementation of a proposal to add
+support for custom page sizes for WebAssembly memories.
+
+* See the [overview](./proposals/custom-page-sizes/Overview.md) for a high-level
+  summary and rationale of the proposal.
+
+Original README from upstream repository follows...
+
+--------------------------------------------------------------------------------
+
 [![CI for specs](https://github.com/WebAssembly/spec/actions/workflows/ci-spec.yml/badge.svg)](https://github.com/WebAssembly/spec/actions/workflows/ci-spec.yml)
 [![CI for interpreter & tests](https://github.com/WebAssembly/spec/actions/workflows/ci-interpreter.yml/badge.svg)](https://github.com/WebAssembly/spec/actions/workflows/ci-interpreter.yml)
 
