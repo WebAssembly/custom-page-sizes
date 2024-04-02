@@ -1,3 +1,294 @@
 # Custom Page Sizes
 
+This proposal allows customizing a memory's page size in its static type
+definition.
+
+## Motivation
+
+1. Allow Wasm to better target resource-constrained **embedded environments**,
+   including those with less than 64KiB memory available.
+
+2. Allow Wasm to have **finer-grained control** over its resource consumption,
+   e.g. if a Wasm module only requires a small amount of additional working
+   memory, it doesn't need to reserve a full 64KiB. Consider, for example,
+   compiling automata and other state machines down into Wasm modules: there
+   will be some state tables in memory, but depending on the size and complexity
+   of the state machine in question these tables can be quite small and may not
+   need a full 64KiB.
+
+3. Allow Wasm to **avoid guard pages** and large virtual memory reservations for
+   particular memories. This enables a Web app with multiple Wasm memories to
+   better stay within the browser's per-page resource limits while still
+   controlling which memories are "fast" and can have explicit bounds checks
+   elided. Similar benefits exist for applications running within multi-tenant
+   function-as-a-service platforms, where virtual address space is also scarce.
+
+## Proposal
+
+Memory types currently have the following structure:
+
+    memtype ::= limits
+
+where `limits` is defined in terms of pages, which are always 64KiB.[^memory64]
+
+[^memory64]: The `memory64` proposal adds an index type to the memory type, and
+parameterizes the limits on the index type, but the limits are still defined in
+terms of 64KiB pages.
+
+This proposal extends the memory type structure[^structure] with a page size:
+
+    memtype ::= mempagesize limits
+    mempagesize ::= u32
+
+[^structure]: Note that this code snipppet is defining *structure* and not
+*binary encoding*, which is why the `mempagesize` is always present. Even though
+the `mempagesize` would be optional in the *binary encoding*, it would have a
+default value of 64KiB if omitted (for backwards compatibility) and is therefore
+always present in the *structure*.
+
+This page size is a power of two between `1` and `65536` inclusive.
+
+The memory type's limits are still be defined in terms of pages, however the
+final memory's size in bytes is now determined both by the limits and the
+configured page size. For example, given a memory type defined with a page size
+of `1024`, a minimum limit of `4`, and a maximum limit of `8`, memory instances
+of that type would have a minimum byte size of `4096`, a maximum byte size of
+`8192`, and their byte size at any given moment would always be a multiple of
+`1024`.
+
+[Memory type matching] requires that both memory types define the exact same
+page size. We do not define a subtyping relationship between page sizes.
+
+[Memory type matching]: https://webassembly.github.io/spec/core/valid/types.html#memories
+
+The `memory.grow` and `memory.size` instructions continue to give results in
+page counts, and can generally remain unmodified.
+
+Customizing a memory's page size does not affect its index type; it has the same
+`i32` or `i64`[^i64-index] index it would otherwise have.
+
+[^i64-index]: If the `memory64` proposal is enabled and this memory is a 64-bit
+memory.
+
+Finally, extending memory types with a page size has the following desirable
+properties:
+
+1. **It is minimally invasive.** This proposal doesn't require any new
+   instructions (e.g. a `memory.page_size <memidx> : [] -> [u32]` instruction,
+   which would be required if page sizes were not static knowledge, see point 3)
+   and only imposes small adjustments to existing instructions. For example, the
+   `memory.size` instruction, as mentioned previously, is almost unchanged: its
+   result is still defined in terms of numbers of pages, its just that engines
+   divide the memory's byte capacity by its defined page size rather than the
+   constant 64KiB.
+
+2. **Page size customization applies to a particular memory.** A module is free
+   to, for example, define multiple memories with multiple different page
+   sizes. Opting into small page sizes for one memory does not affect any other
+   memories in the store.
+
+3. **Page sizes are always known statically.** Every memory instruction has a
+   static `<memidx>` immediate, so we statically know the memory it is operating
+   upon as well as that memory's type, which means we additionally have static
+   knowledge of the memory's page size. This enables constant-propagation and
+   -folding optimizations in Wasm producers and engines with ahead-of-time
+   compilers.
+
+### Example
+
+Here is a short example using strawperson WAT syntax:
+
+```wat
+(module
+  ;; Import a memory with a page size of 512 bytes and a minimum size of
+  ;; 2 pages, aka 1024 bytes. No maximum is specified.
+  (import "env" "memory" (memory $imported (page_size 512) 2))
+
+  ;; Define a memory with a page size of 1; a minimum size of 13 pages, aka
+  ;; 13 bytes; and a maximum size of 42 pages, aka 42 bytes.
+  (memory $defined (page_size 1) 13 42)
+
+  ;; Export a function to get the imported memory's size, in bytes.
+  (func (export "get_imported_memory_size_in_bytes") (result i32)
+    ;; Get the current size of the memory in units of pages.
+    memory.size $imported
+    ;; And thenmultiply by the bytes-per-page to get the memory's byte size.
+    i32.const 512
+    i32.mul
+  )
+
+  ;; And export a similar function for the defined memory. In this case we can
+  ;; avoid the multiplication by page size, since we statically know the page
+  ;; size is 1.
+  (func (export "get_defined_memory_size_in_bytes") (result i32)
+    memory.size $defined
+  )
+)
+```
+
+### Binary Encoding
+
 TODO
+
+### Expected Toolchain Integration
+
+Although toolchains are of course free to take any approach that best suits
+their needs, we [imagine] that the ideal integration of custom page sizes into
+toolchains would have the following shape:
+
+* Source language frontends (e.g. `rustc` or `clang`) expose a constant
+  variable, macro, or similar construct for source languages to get the Wasm
+  page size.
+
+* This expands to or is lowered to a call to a builtin function intrinsic:
+  `__builtin_wasm_page_size()`.
+
+* The backend (e.g. LLVM) lowers that builtin to an `i32.const` with a new
+  relocation type.
+
+* The linker (e.g. `lld`) fills in the constant based on the configured page
+  size given in its command-line arguments.
+
+This approach has the following benefits:
+
+* By delaying the configuration of page size to link time, we ensure that we
+  cannot get configured-page-size mismatches between objects being linked
+  together (which would then require further design decisions surrounding how
+  that scenario should be handled, e.g. whether it should result in a link
+  error).
+
+* It allows for source language toolchains to ship pre-compiled standard library
+  objects such that these objects play nice with custom page sizes and do not
+  either assume the wrong page size or constrain the final binary to a
+  particular page size.
+
+* It avoids imposing performance overhead or inhibiting compiler optimizations,
+  to the best of our abilities.
+
+  This approach doesn't, for example, access static data within the linear
+  memory itself to get the page size (which could happen accidentally happen if
+  the page size were a symbol rather than a relocated `i32.const`). Accessing
+  memory would inhibit compiler optimizations (on both the producer and consumer
+  side) since the compiler would have to prove that the memory contents remain
+  constant.
+
+  Link-time optimizations could, in theory, further propagate and fold uses of
+  the relocated Wasm page size constant. At the very least, it doesn't prevent
+  the engine consuming the Wasm from performing such optimizations.
+
+[imagine]: https://github.com/WebAssembly/custom-page-sizes/issues/3
+
+### How This Proposal Satisfies the Motivating Use Cases
+
+1. Does this proposal help Wasm better target resource-constrained environments,
+   including those with < 64KiB RAM?
+
+   **Yes!**
+
+   Wasm can specify any specific maximum memory size to match its target
+   environment's constraints. For example, if the target environment only has
+   space for 16KiB of Wasm memory, it can define a single-page memory with a
+   16KiB page size:
+
+   ```wat
+   (memory (page_size 16384) 1 1)
+   ```
+
+   Alternatively, it could define a memory with 1-byte pages and 16K-pages
+   minimum and maximum limits. This latter approach allows for memory sizes that
+   are not exact powers of two.
+
+   ```wat
+   (memory (page_size 1) 16384 16384)
+   ```
+
+2. Does this proposal give finer-grained control over resource consumption?
+
+   **Yes!**
+
+   Wasm can take advantage of domain-specific knowledge and specify a page size
+   such that memory grows in increments that better fit its workload. For
+   example, if an audio effects library operates upon blocks of 512 samples at a
+   time, with 16-bit samples, it can use a 1KiB[^audio-block-size] page size to
+   avoid fragmentation and over-allocation.
+
+   [^audio-block-size]: `512 samples/block * 16 bits/sample / 8 bits/byte = 1024 bytes/block`
+
+3. Does this proposal give Wasm the ability to avoid guard pages and large
+   virtual memory reservations for particular memories?
+
+   **Yes!**
+
+   Guard pages are only practical for memory page sizes that are a multiple of
+   the engine's underlying OS's page size. By setting page size to `1`, Wasm can
+   effectively disallow guard pages for a particular memory.
+
+## Alternative Approaches
+
+This section discusses alternative approaches that were considered and why they
+were discarded.
+
+### Let the Engine Choose the Page Size
+
+Instead of defining page sizes statically in the memory type, we could allow
+engines to choose page sizes based on the environment they are running in. This
+page size could be determined either at a whole-store or per-memory
+granularity. Either way, this effectively makes the page size a dynamic
+property, which necessitates a `memory.page_size <memidx>: [] -> [u32]`
+instruction, so that `malloc` implementations can determine how much additional
+memory they have available to parcel out to the application after they execute a
+`memory.grow` instruction, for example. Additionally, existing Wasm binaries
+assume a 64KiB page size today; changing that out from under their feet will
+result in breakage. Finally, this doesn't solve the use case of hinting to the
+Wasm engine that guard pages aren't necessary for a particular memory.
+
+In contrast, by making the page size part of the static memory type, we avoid
+the need for a new `memory.page_size` instruction (or similar) and we
+additionally avoid breaking existing Wasm binaries, since new Wasm binaries must
+opt into alternative page sizes.
+
+### The "`asm.js`-Style" Approach
+
+We could avoid changing Wasm core semantics and instead encourage a
+gentleperson's agreement between Wasm engines and toolchains, possibly with the
+help of a Wasm-to-Wasm rewriting tool. Toolchains would emit Wasm that
+masks/wraps/bounds-checks every single memory access in such a way that the
+engine can statically determine that all accesses fit within the desired memory
+size of `N` that is less than 64KiB. Engines could, therefore, avoid allocating
+a full 64KiB page while still fully conforming to standard Wasm semantics.
+
+This approach, however inelegant, *does* address the narrow embedded use case of
+smaller-than-64KiB memories, but not the other two motivating use
+cases. Furthermore, it inflates Wasm binary size, as every memory access needs
+an extra sequence of instructions to ensure that the access is clamped to at
+most address `N`. It additionally requires that the memory is not exported (and
+therefore this approach isn't composable and doesn't support merging or
+splitting applications across modules). Finally, it also requires full-program
+static analysis on the part of the Wasm engine.
+
+### Ignore These Use Cases
+
+We could ignore these use cases; that is always an option (and is the default,
+if we fail to do something to address them).
+
+However, if we (the Wasm CG) do nothing, then the Wasm subcommunities with these
+use cases (e.g. embedded) are incentivized to satisfy their needs by abandoning
+standard Wasm semantics. Instead, they will implement ad-hoc, non-standard,
+proprietary support for non-multiples-of-64KiB memory sizes. This will lead to
+non-interoperability, ecosystem splits, and &mdash; eventually &mdash; pressure
+on standards-compliant engines and toolchains to support these non-standard
+extensions.
+
+Unfortunately, this scenario has already begun: there exist today engines that
+have chosen to deviate from the standard and provide non-standard memory
+sizes. Furthermore, they do so in a manner such that their deviant behavior is
+observable from Wasm (i.e. they are not performing semantics-preserving
+optimizations like the "`asm.js`-style" approach). [Here is proof-of-concept
+program](https://gist.github.com/fitzgen/a8cc0a9d5c41447416430c1dedc0adf5) whose
+execution diverges depending on whether the Wasm engine is standards compliant
+or not. To make matters worse, these non-standard extensions are already
+shipping on millions of devices.
+
+Therefore, it is both vital and urgent that we (the Wasm CG) create
+standards-based solutions to these use cases, and prevent the situation from
+worsening.
