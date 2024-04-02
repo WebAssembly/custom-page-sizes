@@ -27,18 +27,24 @@ definition.
 
 Memory types currently have the following structure:
 
-    memtype ::= limits
+```ebnf
+memtype ::= limits
+```
 
 where `limits` is defined in terms of pages, which are always 64KiB.[^memory64]
 
 [^memory64]: The `memory64` proposal adds an index type to the memory type, and
 parameterizes the limits on the index type, but the limits are still defined in
-terms of 64KiB pages.
+terms of 64KiB pages. Similarly, the `threads` proposal adds the concept of
+shared and unshared memories and stores that information in the `memtype`, but
+the memory size is unaffected.
 
 This proposal extends the memory type structure[^structure] with a page size:
 
-    memtype ::= mempagesize limits
-    mempagesize ::= u32
+```ebnf
+memtype ::= limits mempagesize
+mempagesize ::= u32
+```
 
 [^structure]: Note that this code snipppet is defining *structure* and not
 *binary encoding*, which is why the `mempagesize` is always present. Even though
@@ -102,11 +108,11 @@ Here is a short example using strawperson WAT syntax:
 (module
   ;; Import a memory with a page size of 512 bytes and a minimum size of
   ;; 2 pages, aka 1024 bytes. No maximum is specified.
-  (import "env" "memory" (memory $imported (page_size 512) 2))
+  (import "env" "memory" (memory $imported 2 (pagesize 512)))
 
   ;; Define a memory with a page size of 1; a minimum size of 13 pages, aka
   ;; 13 bytes; and a maximum size of 42 pages, aka 42 bytes.
-  (memory $defined (page_size 1) 13 42)
+  (memory $defined 13 42 (pagesize 1))
 
   ;; Export a function to get the imported memory's size, in bytes.
   (func (export "get_imported_memory_size_in_bytes") (result i32)
@@ -126,7 +132,100 @@ Here is a short example using strawperson WAT syntax:
 )
 ```
 
-### Binary Encoding
+### Spec Changes
+
+#### Structure
+
+The `memtype` structure gains a `mempagesize` field, which is a `u32` denoting
+the memory's page size:
+
+```ebnf
+memtype ::= idxtype limits share mempagesize
+idxtype ::= i32 | i64
+share ::= shared | unshared
+mempagesize ::= u32
+```
+
+#### Binary Encoding
+
+The [`limits`][limits-binary] production is extended such that it returns a
+4-tuple -- rather than the 3-tuple it would otherwise return under the threads
+and memory64 proposals -- where the fourth value is the page size:
+
+```ebnf
+limits ::= 0x00 n:u32              ⇒ i32, {min n, max ϵ}, unshared, 65536
+        |  0x01 n:u32 m:u32        ⇒ i32, {min n, max m}, unshared, 65536
+        |  0x02 n:u32              ⇒ i32, {min n, max ϵ},   shared, 65536
+        |  0x03 n:u32 m:u32        ⇒ i32, {min n, max m},   shared, 65536
+        |  0x04 n:u64              ⇒ i64, {min n, max ϵ}, unshared, 65536
+        |  0x05 n:u64 m:u64        ⇒ i64, {min n, max m}, unshared, 65536
+        |  0x06 n:u64              ⇒ i64, {min n, max ϵ},   shared, 65536
+        |  0x07 n:u64 m:u64        ⇒ i64, {min n, max m},   shared, 65536
+        |  0x08 n:u32       p:u32  ⇒ i32, {min n, max ϵ}, unshared, 2**p
+        |  0x09 n:u32 m:u32 p:u32  ⇒ i32, {min n, max m}, unshared, 2**p
+        |  0x0a n:u32       p:u32  ⇒ i32, {min n, max ϵ},   shared, 2**p
+        |  0x0b n:u32 m:u32 p:u32  ⇒ i32, {min n, max m},   shared, 2**p
+        |  0x0c n:u64       p:u32  ⇒ i64, {min n, max ϵ}, unshared, 2**p
+        |  0x0d n:u64 m:u64 p:u32  ⇒ i64, {min n, max m}, unshared, 2**p
+        |  0x0e n:u64       p:u32  ⇒ i64, {min n, max ϵ},   shared, 2**p
+        |  0x0f n:u64 m:u64 p:u32  ⇒ i64, {min n, max m},   shared, 2**p
+```
+
+[limits-binary]: https://webassembly.github.io/spec/core/binary/types.html#limits
+
+The bits of the `limits` production's discriminant can be summarized as follows:
+
+* Bit `0`: Whether a maximum bound (`m`) for the limit follows.
+* Bit `1`: Whether the memory is shared or unshared. This was introduced in the
+  `threads` proposal.
+* Bit `2`: Whether the memory's index type is `i32` or `i64`. This was
+  introduced in the `memory64` proposal.
+* Bit `3`: Whether the memory defines a custom page size or not. This is newly
+  introduced in this proposal.
+
+Finally, the [`memtype`][memtype-binary] production is extended to use the
+parsed page size:
+
+```ebnf
+memtype ::= (it, lim, shared, pagesize):limits ⇒ it lim shared pagesize
+```
+
+[memtype-binary]: https://webassembly.github.io/spec/core/binary/types.html#binary-memtype
+
+#### Text Format
+
+There is a new `mempagesize` production:
+
+```ebnf
+mempagesize ::= '(' 'pagesize' u32 ')'
+```
+
+The [`memorytype`][memorytype-text] production is extended to allow an optional
+`mempagesize`:[^text]
+
+```ebnf
+memtype ::= lim:limits                       ⇒ i32 lim unshared 65536
+         |  lim:limits pagesize:mempagesize  ⇒ i32 lim unshared pagesize
+```
+
+[memorytype-text]: https://webassembly.github.io/spec/core/text/types.html#text-memtype
+
+[^text]: Note that I've opted not to write out all of the combinations with the
+`threads` and `memory64` proposals here.
+
+The [memory abbreviation] is extended to allow an optional page size as well:
+
+```ebnf
+'(' 'memory' id? mempagesize? '(' 'data' b_n:datastring ')' ')' === ...
+```
+
+[memory abbreviation]: https://webassembly.github.io/spec/core/text/modules.html#text-mem-abbrev
+
+#### Validation
+
+TODO
+
+#### Execution
 
 TODO
 
@@ -191,7 +290,7 @@ This approach has the following benefits:
    16KiB page size:
 
    ```wat
-   (memory (page_size 16384) 1 1)
+   (memory 1 1 (pagesize 16384))
    ```
 
    Alternatively, it could define a memory with 1-byte pages and 16K-pages
@@ -199,7 +298,7 @@ This approach has the following benefits:
    are not exact powers of two.
 
    ```wat
-   (memory (page_size 1) 16384 16384)
+   (memory 16384 16384 (pagesize 1))
    ```
 
 2. Does this proposal give finer-grained control over resource consumption?
