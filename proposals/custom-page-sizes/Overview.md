@@ -161,14 +161,14 @@ limits ::= 0x00 n:u32              ⇒ i32, {min n, max ϵ}, unshared, 65536
         |  0x05 n:u64 m:u64        ⇒ i64, {min n, max m}, unshared, 65536
         |  0x06 n:u64              ⇒ i64, {min n, max ϵ},   shared, 65536
         |  0x07 n:u64 m:u64        ⇒ i64, {min n, max m},   shared, 65536
-        |  0x08 n:u32       p:u32  ⇒ i32, {min n, max ϵ}, unshared, 2**p
-        |  0x09 n:u32 m:u32 p:u32  ⇒ i32, {min n, max m}, unshared, 2**p
-        |  0x0a n:u32       p:u32  ⇒ i32, {min n, max ϵ},   shared, 2**p
-        |  0x0b n:u32 m:u32 p:u32  ⇒ i32, {min n, max m},   shared, 2**p
-        |  0x0c n:u64       p:u32  ⇒ i64, {min n, max ϵ}, unshared, 2**p
-        |  0x0d n:u64 m:u64 p:u32  ⇒ i64, {min n, max m}, unshared, 2**p
-        |  0x0e n:u64       p:u32  ⇒ i64, {min n, max ϵ},   shared, 2**p
-        |  0x0f n:u64 m:u64 p:u32  ⇒ i64, {min n, max m},   shared, 2**p
+        |  0x08 n:u32       p:u32  ⇒ i32, {min n, max ϵ}, unshared, 2**p  if p <= 16
+        |  0x09 n:u32 m:u32 p:u32  ⇒ i32, {min n, max m}, unshared, 2**p  if p <= 16
+        |  0x0a n:u32       p:u32  ⇒ i32, {min n, max ϵ},   shared, 2**p  if p <= 16
+        |  0x0b n:u32 m:u32 p:u32  ⇒ i32, {min n, max m},   shared, 2**p  if p <= 16
+        |  0x0c n:u64       p:u32  ⇒ i64, {min n, max ϵ}, unshared, 2**p  if p <= 16
+        |  0x0d n:u64 m:u64 p:u32  ⇒ i64, {min n, max m}, unshared, 2**p  if p <= 16
+        |  0x0e n:u64       p:u32  ⇒ i64, {min n, max ϵ},   shared, 2**p  if p <= 16
+        |  0x0f n:u64 m:u64 p:u32  ⇒ i64, {min n, max m},   shared, 2**p  if p <= 16
 ```
 
 [limits-binary]: https://webassembly.github.io/spec/core/binary/types.html#limits
@@ -176,11 +176,12 @@ limits ::= 0x00 n:u32              ⇒ i32, {min n, max ϵ}, unshared, 65536
 The bits of the `limits` production's discriminant can be summarized as follows:
 
 * Bit `0`: Whether a maximum bound (`m`) for the limit follows.
-* Bit `1`: Whether the memory is shared or unshared. This was introduced in the
-  `threads` proposal.
+* Bit `1`: Whether the memory is `shared` or `unshared`. This was introduced in
+  the `threads` proposal.
 * Bit `2`: Whether the memory's index type is `i32` or `i64`. This was
   introduced in the `memory64` proposal.
-* Bit `3`: Whether the memory defines a custom page size or not. This is newly
+* Bit `3`: Whether the memory defines a custom page size (`p`) or not and
+  therefore whether another `u32` follows after the limits. This is newly
   introduced in this proposal.
 
 Finally, the [`memtype`][memtype-binary] production is extended to use the
@@ -223,11 +224,107 @@ The [memory abbreviation] is extended to allow an optional page size as well:
 
 #### Validation
 
-TODO
+* [Memory Types](https://webassembly.github.io/spec/core/valid/types.html#memory-types):
+
+  * Prepend the following bullet points:
+
+    * The `pagesize` must be a power of two.
+
+    * The `pagesize` must be less than or equal to 64 Ki.
+
+  * Replace
+
+    > The `limits` must be valid within the range `2**16`.
+
+    with the following two bullet points:
+
+    * The `limits` must be valid within the range `2**32 / pagesize`
+
+    * If `pagesize == 1`, then `limits.min` must not be `2**32 - 1`
+
+> Note: The exact constraints upon valid `pagesize` values is still an [active
+> topic of
+> discussion](https://github.com/WebAssembly/custom-page-sizes/issues/2), they
+> may become further limited, and the rules presented above should not yet be
+> considered finalized.
+
+> Note: the check for `pagesize == 1` and `limits.min == 2**32 - 1` exists to
+> prevent introducing an ambiguity into the `memory.grow` instruction's
+> result. See the note beneath "growing memories" in the execution section
+> below.
 
 #### Execution
 
-TODO
+##### Instructions
+
+* [`memory.size`](https://webassembly.github.io/spec/core/exec/instructions.html#xref-syntax-instructions-syntax-instr-memory-mathsf-memory-size):
+
+  * Replace step 6 with the following steps:
+
+    * Let `pagesize` be `mem.type.pagesize`
+
+    * Assert due to validation that `pagesize` is a power of two and less than or equal
+      to 64 Ki.
+
+    * Let `sz` be the length of `mem.data` divided by `pagesize`.
+
+* [`memory.grow`](https://webassembly.github.io/spec/core/exec/instructions.html#xref-syntax-instructions-syntax-instr-memory-mathsf-memory-grow):
+
+  * Replace step 6 with the following steps:
+
+    * Let `pagesize` be `mem.type.pagesize`
+
+    * Assert due to validation that `pagesize` is a power of two and less than or equal
+      to 64 Ki.
+
+    * Let `sz` be the length of `mem.data` divided by `pagesize`.
+
+##### Modules
+
+* [Growing memories](https://webassembly.github.io/spec/core/exec/modules.html#growing-memories):
+
+  * Replace steps 2, 3, and 4 with the following steps:
+
+    * Let `pagesize` be `meminst.type.pagesize`
+
+    * Assert due to validation that `pagesize` is a power of two and less than or equal
+      to 64 Ki.
+
+    * Let `len` be `n` added to the length of `meminst.data` divided by `pagesize`.
+
+    * If `len` is larger than `2**16`, then fail.
+
+    * If `len` is equal to `2**32 - 1` and `pagesize` is equal to `1`, then fail.
+
+  * Replace step 8 with the following step:
+
+    * Append `n` times `pagesize` bytes with the value `0x00` to `meminst.data`
+
+> Note: Without the `len == 2**32 - 1` and `pagesize == 1` check, a
+> `memory.grow` instruction returning `-1` is ambiguous. It would be unclear
+> whether growing memory failed or whether it succeeded but the memory's
+> previous size was `2**32 - 1`.
+>
+> When this proposal is combined with the `memory64` proposal, we would extend
+> this check to account for the memory's index type such that we guard against
+> `len == 2**64 - 1` for memories with `i64` indices.
+
+#### Appendix
+
+##### Soundness
+
+* [Memory Instances](https://webassembly.github.io/spec/core/appendix/properties.html#memory-instances-xref-exec-runtime-syntax-meminst-mathsf-type-xref-syntax-types-syntax-limits-mathit-limits-xref-exec-runtime-syntax-meminst-mathsf-data-b-ast)
+
+  * Replace `Memory Instances { type limits, data b* }` with `Memory Instances {
+    type limits pagesize, data b* }`.
+
+  * Replace
+
+    > The length of `b*` must equal `limits.min` multiplied by the page size 64 Ki.
+
+    with
+
+    > The length of `b*` must equal `limits.min` multiplied by `pagesize`.
 
 ### Expected Toolchain Integration
 
