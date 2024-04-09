@@ -240,19 +240,6 @@ The [memory abbreviation] is extended to allow an optional page size as well:
 
     * The `limits` must be valid within the range `2**32 / pagesize`
 
-    * If `pagesize == 1`, then `limits.min` must not be `2**32 - 1`
-
-> Note: The exact constraints upon valid `pagesize` values is still an [active
-> topic of
-> discussion](https://github.com/WebAssembly/custom-page-sizes/issues/2), they
-> may become further limited, and the rules presented above should not yet be
-> considered finalized.
-
-> Note: the check for `pagesize == 1` and `limits.min == 2**32 - 1` exists to
-> prevent introducing an ambiguity into the `memory.grow` instruction's
-> result. See the note beneath "growing memories" in the execution section
-> below.
-
 #### Execution
 
 ##### Instructions
@@ -292,22 +279,11 @@ The [memory abbreviation] is extended to allow an optional page size as well:
 
     * Let `len` be `n` added to the length of `meminst.data` divided by `pagesize`.
 
-    * If `len` is larger than `2**16`, then fail.
-
-    * If `len` is equal to `2**32 - 1` and `pagesize` is equal to `1`, then fail.
+    * If `len` is larger than `2**32` divided by `pagesize`, then fail.
 
   * Replace step 8 with the following step:
 
     * Append `n` times `pagesize` bytes with the value `0x00` to `meminst.data`
-
-> Note: Without the `len == 2**32 - 1` and `pagesize == 1` check, a
-> `memory.grow` instruction returning `-1` is ambiguous. It would be unclear
-> whether growing memory failed or whether it succeeded but the memory's
-> previous size was `2**32 - 1`.
->
-> When this proposal is combined with the `memory64` proposal, we would extend
-> this check to account for the memory's index type such that we guard against
-> `len == 2**64 - 1` for memories with `i64` indices.
 
 #### Appendix
 
