@@ -6,15 +6,15 @@ definition.
 ## Motivation
 
 1. Allow Wasm to better target resource-constrained **embedded environments**,
-   including those with less than 64 Ki memory available.
+   including those with less than 64 KiB memory available.
 
 2. Allow Wasm to have **finer-grained control** over its resource consumption,
    e.g. if a Wasm module only requires a small amount of additional working
-   memory, it doesn't need to reserve a full 64 Ki. Consider, for example,
+   memory, it doesn't need to reserve a full 64 KiB. Consider, for example,
    compiling automata and other state machines down into Wasm modules: there
    will be some state tables in memory, but depending on the size and complexity
    of the state machine in question these tables can be quite small and may not
-   need a full 64 Ki.
+   need a full 64 KiB.
 
 3. Allow Wasm to **avoid guard pages** and large virtual memory reservations for
    particular memories. This enables a Web app with multiple Wasm memories to
@@ -31,11 +31,11 @@ Memory types currently have the following structure:
 memtype ::= limits
 ```
 
-where `limits` is defined in terms of pages, which are always 64 Ki.[^memory64]
+where `limits` is defined in terms of pages, which are always 64 KiB.[^memory64]
 
 [^memory64]: The `memory64` proposal adds an index type to the memory type, and
 parameterizes the limits on the index type, but the limits are still defined in
-terms of 64 Ki pages. Similarly, the `threads` proposal adds the concept of
+terms of 64 KiB pages. Similarly, the `threads` proposal adds the concept of
 shared and unshared memories and stores that information in the `memtype`, but
 the memory size is unaffected.
 
@@ -49,8 +49,8 @@ mempagesize ::= u32
 [^structure]: Note that this code snipppet is defining *structure* and not
 *binary encoding*, which is why the `mempagesize` is always present. Even though
 the `mempagesize` would be optional in the *binary encoding*, it would have a
-default value of 64 Ki if omitted (for backwards compatibility) and is therefore
-always present in the *structure*.
+default value of 2<sup>16</sup> if omitted (for backwards compatibility) and is
+therefore always present in the *structure*.
 
 This page size is a power of two between `1` and `65536` inclusive.
 
@@ -353,14 +353,14 @@ This approach has the following benefits:
 ### How This Proposal Satisfies the Motivating Use Cases
 
 1. Does this proposal help Wasm better target resource-constrained environments,
-   including those with < 64 Ki RAM?
+   including those with < 64 KiB RAM?
 
    **Yes!**
 
    Wasm can specify any specific maximum memory size to match its target
    environment's constraints. For example, if the target environment only has
-   space for 16 Ki of Wasm memory, it can define a single-page memory with a 16
-   Ki page size:
+   space for 16 KiB of Wasm memory, it can define a single-page memory with a 16
+   KiB page size:
 
    ```wat
    (memory 1 1 (pagesize 16384))
@@ -381,7 +381,7 @@ This approach has the following benefits:
    Wasm can take advantage of domain-specific knowledge and specify a page size
    such that memory grows in increments that better fit its workload. For
    example, if an audio effects library operates upon blocks of 512 samples at a
-   time, with 16-bit samples, it can use a 1 Ki[^audio-block-size] page size to
+   time, with 16-bit samples, it can use a 1 KiB[^audio-block-size] page size to
    avoid fragmentation and over-allocation.
 
    [^audio-block-size]: `512 samples/block * 16 bits/sample / 8 bits/byte = 1024 bytes/block`
@@ -410,7 +410,7 @@ property, which necessitates a `memory.page_size <memidx>: [] -> [u32]`
 instruction, so that `malloc` implementations can determine how much additional
 memory they have available to parcel out to the application after they execute a
 `memory.grow` instruction, for example. Additionally, existing Wasm binaries
-assume a 64 Ki page size today; changing that out from under their feet will
+assume a 64 KiB page size today; changing that out from under their feet will
 result in breakage. Finally, this doesn't solve the use case of hinting to the
 Wasm engine that guard pages aren't necessary for a particular memory.
 
@@ -426,11 +426,11 @@ gentleperson's agreement between Wasm engines and toolchains, possibly with the
 help of a Wasm-to-Wasm rewriting tool. Toolchains would emit Wasm that
 masks/wraps/bounds-checks every single memory access in such a way that the
 engine can statically determine that all accesses fit within the desired memory
-size of `N` that is less than 64 Ki. Engines could, therefore, avoid allocating
-a full 64 Ki page while still fully conforming to standard Wasm semantics.
+size of `N` that is less than 64 KiB. Engines could, therefore, avoid allocating
+a full 64 KiB page while still fully conforming to standard Wasm semantics.
 
 This approach, however inelegant, *does* address the narrow embedded use case of
-smaller-than-64-Ki memories, but not the other two motivating use
+smaller-than-64-KiB memories, but not the other two motivating use
 cases. Furthermore, it inflates Wasm binary size, as every memory access needs
 an extra sequence of instructions to ensure that the access is clamped to at
 most address `N`. It additionally requires that the memory is not exported (and
@@ -446,7 +446,7 @@ if we fail to do something to address them).
 However, if we (the Wasm CG) do nothing, then the Wasm subcommunities with these
 use cases (e.g. embedded) are incentivized to satisfy their needs by abandoning
 standard Wasm semantics. Instead, they will implement ad-hoc, non-standard,
-proprietary support for non-multiples-of-64-Ki memory sizes. This will lead to
+proprietary support for non-multiples-of-64-KiB memory sizes. This will lead to
 non-interoperability, ecosystem splits, and &mdash; eventually &mdash; pressure
 on standards-compliant engines and toolchains to support these non-standard
 extensions.
