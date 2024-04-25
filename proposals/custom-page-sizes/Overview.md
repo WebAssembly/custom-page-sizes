@@ -464,3 +464,45 @@ shipping on millions of devices.
 Therefore, it is both vital and urgent that we (the Wasm CG) create
 standards-based solutions to these use cases, and prevent the situation from
 worsening.
+
+### Maximum Memory Address Accessed Hint
+
+We could avoid modifying the memory page size and instead provide a hint
+(similar to the branch hinting proposal) promising that memory above address `A`
+will never be accessed. Then runtimes could allocate linear memory just large
+enough for `A`, leaving the rest of the memory unallocated. This would
+effectively allow Wasm to define memories that are smaller than 64 KiB or which
+are not multiples of 64 KiB.
+
+However, what happens if the Wasm fails to uphold its promise not to access
+memory above `A`?
+
+If the answer to that question is deterministically raising a trap, then this
+alternative is basically the same as this proposal, except with two additional
+and related disadvantages:
+
+1. It fails to reuse existing Wasm concepts, like memory being composed of
+   pages, increasing the effort required to spec the feature and imposing
+   additional complexity burden on implementations.
+
+2. Simultaneously, it provides less flexibility and generality than this
+   proposal: Wasm cannot, for example, rely on `memory.size` to determine the
+   "real" maximum addressable memory address.
+
+If the answer to that question is that accesses nondeterministically trap or
+succeed, then that opens the door to even more problematic questions, such as:
+
+* Are stores that do not trap visible from subsequent loads that do not trap?
+  That is, is it acceptable to simply ignore stores and return 0 for loads?
+
+* How portable is an observed behavior? Can I expect the same behavior across
+  runtimes or architectures or devices or on the Web or outside the Web?
+
+* If I observe a certain nondeterministic behavior for a memory access beyond
+  the hint's maximum address when running, will all other such accesses during
+  this run exhibit the same behavior? Can one access succeed while the next will
+  trap?
+
+Finally, keeping Wasm as deterministic as possible (something the CG has tried
+to do in general) has advantages for tooling, portability, testing, and
+reliability.
