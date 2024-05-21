@@ -52,15 +52,18 @@ the `mempagesize` would be optional in the *binary encoding*, it would have a
 default value of 2<sup>16</sup> if omitted (for backwards compatibility) and is
 therefore always present in the *structure*.
 
-This page size is a power of two between `1` and `65536` inclusive.
+There are currently exactly two valid page sizes: 1 byte and 64 KiB. The
+encoding and spec are factored such that we can relax this to allow any power of
+two between `1` and `65536` (inclusive) in the future, should we choose to do
+so.
 
 The memory type's limits are still be defined in terms of pages, however the
 final memory's size in bytes is now determined both by the limits and the
 configured page size. For example, given a memory type defined with a page size
-of `1024`, a minimum limit of `4`, and a maximum limit of `8`, memory instances
-of that type would have a minimum byte size of `4096`, a maximum byte size of
-`8192`, and their byte size at any given moment would always be a multiple of
-`1024`.
+of `1`, a minimum limit of `4096`, and a maximum limit of `8192`, memory
+instances of that type would have a minimum byte size of `4096`, a maximum byte
+size of `8192`, and their byte size at any given moment could be any multiple of
+the page size (`1`) within those min/max bounds.
 
 [Memory type matching] requires that both memory types define the exact same
 page size. We do not define a subtyping relationship between page sizes.
@@ -102,32 +105,42 @@ properties:
 
 ### Example
 
-Here is a short example using strawperson WAT syntax:
+Here is a short example:
 
 ```wat
 (module
-  ;; Import a memory with a page size of 512 bytes and a minimum size of
-  ;; 2 pages, aka 1024 bytes. No maximum is specified.
-  (import "env" "memory" (memory $imported 2 (pagesize 512)))
+  ;; Import a memory with a page size of 1 byte and a minimum size of
+  ;; 1024 pages, aka 1024 bytes. No maximum is specified.
+  (import "env" "memory" (memory $imported 1024 (pagesize 1)))
 
-  ;; Define a memory with a page size of 1; a minimum size of 13 pages, aka
-  ;; 13 bytes; and a maximum size of 42 pages, aka 42 bytes.
-  (memory $defined 13 42 (pagesize 1))
+  ;; Define a memory with a page size of 64KiB; a minimum size of 2 pages,
+  ;; aka 131072 bytes; and a maximum size of 4 pages, aka 262144 bytes.
+  (memory $defined 2 4 (pagesize 65536))
 
   ;; Export a function to get the imported memory's size, in bytes.
   (func (export "get_imported_memory_size_in_bytes") (result i32)
-    ;; Get the current size of the memory in units of pages.
+    ;; Get the current size of the imported memory in units of pages.
     memory.size $imported
-    ;; And thenmultiply by the bytes-per-page to get the memory's byte size.
-    i32.const 512
-    i32.mul
+    ;; In this case, we statically know that the page size is one byte, so we
+    ;; can avoid multiplying the size-in-pages by bytes-per-page to get the
+    ;; size-in-bytes. This code could also be cleaned up by either the Wasm-
+    ;; producing toolchain or the Wasm-consuming engine, if necessary.
+    ;;
+    ;; i32.const 1
+    ;; i32.mul
   )
 
   ;; And export a similar function for the defined memory. In this case we can
   ;; avoid the multiplication by page size, since we statically know the page
   ;; size is 1.
   (func (export "get_defined_memory_size_in_bytes") (result i32)
+    ;; Get the current size of the defined memory in units of pages.
     memory.size $defined
+    ;; In this case, since we are using the default page size of 64KiB, we have
+    ;; to multiple the size-in-bytes by the bytes-per-page to get the memory's
+    ;; byte size.
+    i32.const 65536
+    i32.mul
   )
 )
 ```
@@ -228,9 +241,7 @@ The [memory abbreviation] is extended to allow an optional page size as well:
 
   * Prepend the following bullet points:
 
-    * The `pagesize` must be a power of two.
-
-    * The `pagesize` must be less than or equal to 64 Ki.
+    * The `pagesize` must be the value `1` or the value `65536`.
 
   * Replace
 
@@ -250,8 +261,8 @@ The [memory abbreviation] is extended to allow an optional page size as well:
 
     * Let `pagesize` be `mem.type.pagesize`
 
-    * Assert due to validation that `pagesize` is a power of two and less than or equal
-      to 64 Ki.
+    * Assert due to validation that `pagesize` is either the value `1` or the
+      value `65536`.
 
     * Let `sz` be the length of `mem.data` divided by `pagesize`.
 
@@ -261,8 +272,8 @@ The [memory abbreviation] is extended to allow an optional page size as well:
 
     * Let `pagesize` be `mem.type.pagesize`
 
-    * Assert due to validation that `pagesize` is a power of two and less than or equal
-      to 64 Ki.
+    * Assert due to validation that `pagesize` is either the value `1` or the
+      value `65536`.
 
     * Let `sz` be the length of `mem.data` divided by `pagesize`.
 
@@ -274,8 +285,8 @@ The [memory abbreviation] is extended to allow an optional page size as well:
 
     * Let `pagesize` be `meminst.type.pagesize`
 
-    * Assert due to validation that `pagesize` is a power of two and less than or equal
-      to 64 Ki.
+    * Assert due to validation that `pagesize` is either the value `1` or the
+      value `65536`.
 
     * Let `len` be `n` added to the length of `meminst.data` divided by `pagesize`.
 
