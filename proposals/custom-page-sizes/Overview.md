@@ -16,13 +16,6 @@ definition.
    of the state machine in question these tables can be quite small and may not
    need a full 64 KiB.
 
-3. Allow Wasm to **avoid guard pages** and large virtual memory reservations for
-   particular memories. This enables a Web app with multiple Wasm memories to
-   better stay within the browser's per-page resource limits while still
-   controlling which memories are "fast" and can have explicit bounds checks
-   elided. Similar benefits exist for applications running within multi-tenant
-   function-as-a-service platforms, where virtual address space is also scarce.
-
 ## Proposal
 
 Memory types currently have the following structure:
@@ -396,15 +389,6 @@ This approach has the following benefits:
    avoid fragmentation and over-allocation.
 
    [^audio-block-size]: `512 samples/block * 16 bits/sample / 8 bits/byte = 1024 bytes/block`
-
-3. Does this proposal give Wasm the ability to avoid guard pages and large
-   virtual memory reservations for particular memories?
-
-   **Yes!**
-
-   Guard pages are only practical for memory page sizes that are a multiple of
-   the engine's underlying OS's page size. By setting page size to `1`, Wasm can
-   effectively disallow guard pages for a particular memory.
 
 ## Alternative Approaches
 
