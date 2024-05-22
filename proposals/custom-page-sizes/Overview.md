@@ -363,16 +363,8 @@ This approach has the following benefits:
 
    Wasm can specify any specific maximum memory size to match its target
    environment's constraints. For example, if the target environment only has
-   space for 16 KiB of Wasm memory, it can define a single-page memory with a 16
-   KiB page size:
-
-   ```wat
-   (memory 1 1 (pagesize 16384))
-   ```
-
-   Alternatively, it could define a memory with 1-byte pages and 16K-pages
-   minimum and maximum limits. This latter approach allows for memory sizes that
-   are not exact powers of two.
+   space for 16 KiB of Wasm memory, it can define a memory with a 1-byte page
+   size and 16 Ki minimum and maximum page limits:
 
    ```wat
    (memory 16384 16384 (pagesize 1))
@@ -383,12 +375,14 @@ This approach has the following benefits:
    **Yes!**
 
    Wasm can take advantage of domain-specific knowledge and specify a page size
-   such that memory grows in increments that better fit its workload. For
-   example, if an audio effects library operates upon blocks of 512 samples at a
-   time, with 16-bit samples, it can use a 1 KiB[^audio-block-size] page size to
-   avoid fragmentation and over-allocation.
-
-   [^audio-block-size]: `512 samples/block * 16 bits/sample / 8 bits/byte = 1024 bytes/block`
+   such that memory size exactly fits its workload. Consider again, for example,
+   compiling finite state machines down into Wasm modules: there will be some
+   state tables that must be stored in memory and, depending on complexity of
+   the state machine in question, these tables might be large or quite
+   small. With a 1-byte page size, this proposal allows the memory to be sized
+   to the exact capacity required for these state tables, without relying on the
+   presence of virtual memory or an MMU to avoid paging in regions of unused
+   memory.
 
 ## Alternative Approaches
 
@@ -406,8 +400,7 @@ instruction, so that `malloc` implementations can determine how much additional
 memory they have available to parcel out to the application after they execute a
 `memory.grow` instruction, for example. Additionally, existing Wasm binaries
 assume a 64 KiB page size today; changing that out from under their feet will
-result in breakage. Finally, this doesn't solve the use case of hinting to the
-Wasm engine that guard pages aren't necessary for a particular memory.
+result in breakage.
 
 In contrast, by making the page size part of the static memory type, we avoid
 the need for a new `memory.page_size` instruction (or similar) and we
