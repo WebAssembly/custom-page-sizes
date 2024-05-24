@@ -242,6 +242,8 @@ The [memory abbreviation] is extended to allow an optional page size as well:
 
     with the following two bullet points:
 
+    * The `limits` must be valid within the range `2**32` - 1.
+
     * The `limits` must be valid within the range `2**32 / pagesize`
 
 #### Execution
@@ -282,6 +284,8 @@ The [memory abbreviation] is extended to allow an optional page size as well:
       value `65536`.
 
     * Let `len` be `n` added to the length of `meminst.data` divided by `pagesize`.
+
+    * If `len` is larger than or equal to `2**32`, then fail.
 
     * If `len` is larger than `2**32` divided by `pagesize`, then fail.
 
