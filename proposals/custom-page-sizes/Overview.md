@@ -358,6 +358,17 @@ This approach has the following benefits:
 
 [imagine]: https://github.com/WebAssembly/custom-page-sizes/issues/3
 
+Alternatively, the linker could inject an immutable global defining the page
+size and relocate uses of the `__builtin_wasm_page_size()` to `global.get
+$injected_page_size_global` instead of `i32.const $page_size`. This is mostly
+equivalent, and should not fundamentally have any more or less potential for
+optimization by the Wasm consumer, but may allow [dynamic linking] to either
+assert an expected page size (to double check against dynamic linking errors at
+runtime) or even for a shared library module to be compatibly linked with
+modules using any page size.
+
+[dynamic linking]: https://github.com/WebAssembly/tool-conventions/blob/main/DynamicLinking.md
+
 ### How This Proposal Satisfies the Motivating Use Cases
 
 1. Does this proposal help Wasm better target resource-constrained environments,
