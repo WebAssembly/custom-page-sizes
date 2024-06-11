@@ -358,29 +358,16 @@ This approach has the following benefits:
 
 [imagine]: https://github.com/WebAssembly/custom-page-sizes/issues/3
 
-#### Alternative: use an immutable global instead of the relocations
+Alternatively, the linker could inject an immutable global defining the page
+size and relocate uses of the `__builtin_wasm_page_size()` to `global.get
+$injected_page_size_global` instead of `i32.const $page_size`. This is mostly
+equivalent, and should not fundamentally have any more or less potential for
+optimization by the Wasm consumer, but may allow [dynamic linking] to either
+assert an expected page size (to double check against dynamic linking errors at
+runtime) or even for a shared library module to be compatibly linked with
+modules using any page size.
 
-Alternativey, we can probably use an immutable global instead of
-the relocations.
-
-Pros over relocations:
-
-- The toolchain implementations might be more straightforward that way.
-- A global can be exported/imported. It might be simpler for things like
-  [dynamic-linking].
-- The resulted binary might be more friendly to binary-rewriters like
-  wasm-opt.
-
-A possible downside is that you can't have the page size in data sections.
-Eg. consider a C global variable like the following.
-It shouldn't be a big problem these days as modern applications do not
-assume that the page size is a build-time constant anyway though.
-
-```c
-static int global_var = PAGE_SIZE;
-```
-
-[dynamic-linking]: https://github.com/WebAssembly/tool-conventions/blob/main/DynamicLinking.md
+[dynamic linking]: https://github.com/WebAssembly/tool-conventions/blob/main/DynamicLinking.md
 
 ### How This Proposal Satisfies the Motivating Use Cases
 
