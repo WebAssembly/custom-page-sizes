@@ -399,6 +399,43 @@ modules using any page size.
    presence of virtual memory or an MMU to avoid paging in regions of unused
    memory.
 
+## Implementation Status
+
+*If you add support for this proposal to a toolchain, engine, or etc... that
+isn't listed here, please send a pull request updating this list!*
+
+Tests:
+
+* [x] [Core spec tests](https://github.com/WebAssembly/custom-page-sizes/tree/main/test/core/custom-page-sizes)
+
+Engines:
+
+* [x] [Wasmtime](https://github.com/bytecodealliance/wasmtime/pull/8763)
+
+Toolchains:
+
+* [ ] `wasm-ld` in LLVM
+
+Binary decoders:
+
+* [x] [`wasmparser` in `wasm-tools`](https://docs.rs/wasmparser/0.210.0/wasmparser/struct.MemoryType.html#structfield.page_size_log2)
+
+Validation:
+
+* [x] [`wasmparser` in `wasm-tools`](https://docs.rs/wasmparser/0.210.0/wasmparser/struct.WasmFeatures.html#associatedconstant.CUSTOM_PAGE_SIZES)
+
+Binary encoders:
+
+* [x] [`wasm-encoder` in `wasm-tools`](https://docs.rs/wasm-encoder/0.210.0/wasm_encoder/struct.MemoryType.html#structfield.page_size_log2)
+
+Text parsers:
+
+* [x] [`wat` and `wast` in `wasm-tools`](https://github.com/bytecodealliance/wasm-tools/blob/d6436035fefa4861e64b27d0c416cfe9f309369d/crates/wast/src/core/types.rs#L643)
+
+Fuzzing and test-case generation:
+
+* [x] [`wasm-smith` in `wasm-tools`](https://docs.rs/wasm-smith/0.210.0/wasm_smith/struct.Config.html#structfield.custom_page_sizes_enabled)
+
 ## Alternative Approaches
 
 This section discusses alternative approaches that were considered and why they
