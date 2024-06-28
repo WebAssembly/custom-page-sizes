@@ -411,6 +411,7 @@ Tests:
 Engines:
 
 * [x] [Wasmtime](https://github.com/bytecodealliance/wasmtime/pull/8763)
+* [x] [Wasm3](https://github.com/tommie/wasm3/commit/3d2dfb75129802080e8ea6ffe5b8eded651bda68)
 
 Toolchains:
 
