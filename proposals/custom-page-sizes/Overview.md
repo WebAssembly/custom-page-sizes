@@ -410,7 +410,7 @@ Tests:
 
 Engines:
 
-* [x] [toywasm](https://github.com/yamt/toywasm)
+* [x] [toywasm](https://github.com/yamt/toywasm/pull/181)
 * [x] [Wasmtime](https://github.com/bytecodealliance/wasmtime/pull/8763)
 
 Toolchains:
