@@ -411,6 +411,7 @@ Tests:
 Engines:
 
 * [x] [toywasm](https://github.com/yamt/toywasm/pull/181)
+* [x] [WABT's interpreter](https://github.com/WebAssembly/wabt/pull/2502)
 * [x] [Wasmtime](https://github.com/bytecodealliance/wasmtime/pull/8763)
 * [x] [Wasm3](https://github.com/tommie/wasm3/commit/3d2dfb75129802080e8ea6ffe5b8eded651bda68)
 
@@ -421,18 +422,22 @@ Toolchains:
 Binary decoders:
 
 * [x] [`wasmparser` in `wasm-tools`](https://docs.rs/wasmparser/0.210.0/wasmparser/struct.MemoryType.html#structfield.page_size_log2)
+* [x] [WABT's binary reader](https://github.com/WebAssembly/wabt/pull/2502)
 
 Validation:
 
 * [x] [`wasmparser` in `wasm-tools`](https://docs.rs/wasmparser/0.210.0/wasmparser/struct.WasmFeatures.html#associatedconstant.CUSTOM_PAGE_SIZES)
+* [x] [WABT's validator](https://github.com/WebAssembly/wabt/pull/2502)
 
 Binary encoders:
 
 * [x] [`wasm-encoder` in `wasm-tools`](https://docs.rs/wasm-encoder/0.210.0/wasm_encoder/struct.MemoryType.html#structfield.page_size_log2)
+* [x] [WABT's binary writer](https://github.com/WebAssembly/wabt/pull/2502)
 
 Text parsers:
 
 * [x] [`wat` and `wast` in `wasm-tools`](https://github.com/bytecodealliance/wasm-tools/blob/d6436035fefa4861e64b27d0c416cfe9f309369d/crates/wast/src/core/types.rs#L643)
+* [x] [WABT's `.wat` parser](https://github.com/WebAssembly/wabt/pull/2502)
 
 Fuzzing and test-case generation:
 
