@@ -4,6 +4,11 @@
   "invalid custom page size"
 )
 
+(assert_malformed
+  (module quote "(memory 0 (pagesize 0))")
+  "invalid custom page size"
+)
+
 ;; Power-of-two page sizes that are not 1 or 64KiB.
 (assert_invalid
   (module (memory 0 (pagesize 2)))
@@ -108,3 +113,62 @@
   )
   "memory types incompatible"
 )
+
+;; Maximum memory sizes.
+;; These modules are valid, but instantiating them would allocate
+;; a huge memory, so test with `assert_unlinkable` + a missing import.
+
+;; i32 (pagesize 1)
+(assert_unlinkable
+  (module
+    (import "test" "unknown" (func))
+    (memory 0xFFFF_FFFF (pagesize 1)))
+  "unknown import")
+
+;; i64 (pagesize 1)
+(assert_unlinkable
+  (module
+    (import "test" "import" (func))
+    (memory i64 0xFFFF_FFFF_FFFF_FFFF (pagesize 1)))
+  "unknown import")
+
+;; i32 (default pagesize)
+(assert_unlinkable
+  (module
+    (import "test" "unknown" (func))
+    (memory 65536 (pagesize 65536)))
+  "unknown import")
+
+;; i64 (default pagesize)
+(assert_unlinkable
+  (module
+    (import "test" "unknown" (func))
+    (memory i64 0x1_0000_0000_0000 (pagesize 65536)))
+  "unknown import")
+
+;; Memory size just over the maximum.
+;;
+;; These are malformed (for pagesize 1)
+;; or invalid (for other pagesizes).
+
+;; i32 (pagesize 1)
+(assert_malformed
+  (module quote "(memory 0x1_0000_0000 (pagesize 1))")
+  "constant out of range")
+
+;; i64 (pagesize 1)
+(assert_malformed
+  (module quote "(memory i64 0x1_0000_0000_0000_0000 (pagesize 1))")
+  "constant out of range")
+
+;; i32 (default pagesize)
+(assert_invalid
+  (module
+    (memory 65537 (pagesize 65536)))
+  "memory size must be at most")
+
+;; i64 (default pagesize)
+(assert_invalid
+  (module
+    (memory i64 0x1_0000_0000_0001 (pagesize 65536)))
+  "memory size must be at most")
