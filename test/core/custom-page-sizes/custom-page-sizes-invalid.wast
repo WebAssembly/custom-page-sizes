@@ -115,8 +115,14 @@
 )
 
 ;; Maximum memory sizes.
-;; These modules are valid, but instantiating them would allocate
-;; a huge memory, so test with `assert_unlinkable` + a missing import.
+;;
+;; These modules are valid, but instantiating them is unnecessary
+;; and would only allocate very large memories and slow down running
+;; the spec tests. Therefore, add a missing import so that it cannot
+;; be instantiated and use `assert_unlinkable`. This approach
+;; enforces that the module itself is still valid, but that its
+;; instantiation fails early (hopefully before any memories are
+;; actually allocated).
 
 ;; i32 (pagesize 1)
 (assert_unlinkable
