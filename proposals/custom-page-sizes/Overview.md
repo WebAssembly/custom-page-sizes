@@ -418,6 +418,7 @@ Engines:
 Toolchains:
 
 * [ ] `wasm-ld` in LLVM
+* [x] [The Virgil language toolchain](https://github.com/titzer/virgil/pull/272)
 
 Binary decoders:
 
