@@ -412,6 +412,7 @@ Engines:
 
 * [x] [toywasm](https://github.com/yamt/toywasm/pull/181)
 * [x] [WABT's interpreter](https://github.com/WebAssembly/wabt/pull/2502)
+* [x] [WABT's `wasm2c`](https://github.com/WebAssembly/wabt/pull/2508)
 * [x] [Wasmtime](https://github.com/bytecodealliance/wasmtime/pull/8763)
 * [x] [Wasm3](https://github.com/tommie/wasm3/commit/3d2dfb75129802080e8ea6ffe5b8eded651bda68)
 
@@ -419,7 +420,6 @@ Toolchains:
 
 * [ ] [Binaryen and `wasm-opt`](https://github.com/WebAssembly/binaryen/issues/6873)
 * [ ] `wasm-ld` in LLVM
-* [x] [`wasm2c` in WABT](https://github.com/WebAssembly/wabt/pull/2508)
 * [x] [The Virgil language toolchain](https://github.com/titzer/virgil/pull/272)
 
 Binary decoders:
