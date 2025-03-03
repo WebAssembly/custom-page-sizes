@@ -419,6 +419,7 @@ Toolchains:
 
 * [ ] [Binaryen and `wasm-opt`](https://github.com/WebAssembly/binaryen/issues/6873)
 * [ ] `wasm-ld` in LLVM
+* [x] [`wasm2c` in WABT](https://github.com/WebAssembly/wabt/pull/2508)
 * [x] [The Virgil language toolchain](https://github.com/titzer/virgil/pull/272)
 
 Binary decoders:
