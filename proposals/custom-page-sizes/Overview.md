@@ -419,7 +419,7 @@ Engines:
 Toolchains:
 
 * [ ] [Binaryen and `wasm-opt`](https://github.com/WebAssembly/binaryen/issues/6873)
-* [ ] `wasm-ld` in LLVM
+* [x] [`wasm-ld` in LLVM](https://github.com/llvm/llvm-project/pull/128942)
 * [x] [The Virgil language toolchain](https://github.com/titzer/virgil/pull/272)
 
 Binary decoders:
