@@ -40,7 +40,7 @@ and deftype = DefT of rectype * int32
 
 type tagtype = TagT of typeuse
 type globaltype = GlobalT of mut * valtype
-type memorytype = MemoryT of addrtype * pagetype * limits
+type memorytype = MemoryT of addrtype * limits * pagetype
 type tabletype = TableT of addrtype * limits * reftype
 type localtype = LocalT of init * valtype
 type externtype =
@@ -412,7 +412,7 @@ let string_of_globaltype = function
   | GlobalT (mut, t) -> string_of_mut (string_of_valtype t) mut
 
 let string_of_memorytype = function
-  | MemoryT (at, pt, lim) -> string_of_addrtype at ^ " " ^ string_of_limits lim ^ " " ^ string_of_pagetype pt
+  | MemoryT (at, lim, pt) -> string_of_addrtype at ^ " " ^ string_of_limits lim ^ " " ^ string_of_pagetype pt
 
 let string_of_tabletype = function
   | TableT (at, lim, t) ->

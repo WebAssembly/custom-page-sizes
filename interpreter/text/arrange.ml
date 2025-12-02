@@ -118,7 +118,7 @@ let tagtype (TagT ut) =
 let globaltype (GlobalT (mut, t)) =
   [mutability (atom string_of_valtype t) mut]
 
-let memorytype (MemoryT (at, pt, lim)) =
+let memorytype (MemoryT (at, lim, pt)) =
   [Atom (addrtype at ^ " " ^ limits nat64 lim)] (* TODO(custom-page-sizes) *)
 
 let tabletype (TableT (at, lim, t)) =
