@@ -13,6 +13,7 @@ type limits = {min : int64; max : int64 option}
 type typeuse = Idx of typeidx | Rec of int32 | Def of deftype
 
 and addrtype = I32AT | I64AT
+and pagetype = PageT of int
 and numtype = I32T | I64T | F32T | F64T
 and vectype = V128T
 and heaptype =
@@ -39,7 +40,7 @@ and deftype = DefT of rectype * int32
 
 type tagtype = TagT of typeuse
 type globaltype = GlobalT of mut * valtype
-type memorytype = MemoryT of addrtype * limits
+type memorytype = MemoryT of addrtype * pagetype * limits
 type tabletype = TableT of addrtype * limits * reftype
 type localtype = LocalT of init * valtype
 type externtype =
@@ -219,7 +220,7 @@ let subst_globaltype s = function
   | GlobalT (mut, t) ->  GlobalT (mut, subst_valtype s t)
 
 let subst_memorytype s = function
-  | MemoryT (at, lim) -> MemoryT (subst_addrtype s at, lim)
+  | MemoryT (at, pt, lim) -> MemoryT (subst_addrtype s at, pt, lim)
 
 let subst_tabletype s = function
   | TableT (at, lim, t) -> TableT (subst_addrtype s at, lim, subst_reftype s t)
@@ -322,6 +323,9 @@ let string_of_numtype = function
 let string_of_addrtype at =
   string_of_numtype (numtype_of_addrtype at)
 
+let string_of_pagetype = function
+  | PageT x -> string_of_int x
+
 let string_of_vectype = function
   | V128T -> "v128"
 
@@ -408,7 +412,7 @@ let string_of_globaltype = function
   | GlobalT (mut, t) -> string_of_mut (string_of_valtype t) mut
 
 let string_of_memorytype = function
-  | MemoryT (at, lim) -> string_of_addrtype at ^ " " ^ string_of_limits lim
+  | MemoryT (at, pt, lim) -> string_of_addrtype at ^ " " ^ string_of_limits lim ^ " " ^ string_of_pagetype pt
 
 let string_of_tabletype = function
   | TableT (at, lim, t) ->

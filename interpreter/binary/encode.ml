@@ -194,7 +194,7 @@ struct
     | GlobalT (mut, t) -> valtype t; mutability mut
 
   let memorytype = function
-    | MemoryT (at, lim) -> limits at lim
+    | MemoryT (at, pt, lim) -> limits at lim (* TODO(custom-page-sizes) *)
 
   let tabletype = function
     | TableT (at, lim, t) -> reftype t; limits at lim

@@ -31,13 +31,13 @@ let valid_size at i =
 
 let create n =
   try
-    let size = Int64.(mul n page_size) in
+    let size = Int64.(mul n page_size) in (* TODO(custom-page-sizes *)
     let mem = Array1_64.create Int8_unsigned C_layout size in
     Array1.fill mem 0;
     mem
   with Out_of_memory -> raise OutOfMemory
 
-let alloc (MemoryT (at, lim) as ty) =
+let alloc (MemoryT (at, pt, lim) as ty) =
   assert Free.((memorytype ty).types = Set.empty);
   if not (valid_size at lim.min) then raise SizeOverflow;
   if not (valid_limits lim) then raise Type;
@@ -47,16 +47,16 @@ let bound mem =
   Array1_64.dim mem.content
 
 let size mem =
-  Int64.(div (bound mem) page_size)
+  Int64.(div (bound mem) page_size) (* TODO(custom-page-sizes) *)
 
 let type_of mem =
   mem.ty
 
 let addrtype_of mem =
-  let MemoryT (at, _) = type_of mem in at
+  let MemoryT (at, _, _) = type_of mem in at
 
 let grow mem delta =
-  let MemoryT (at, lim) = mem.ty in
+  let MemoryT (at, pt, lim) = mem.ty in
   assert (lim.min = size mem);
   let old_size = lim.min in
   let new_size = Int64.add old_size delta in
@@ -67,7 +67,7 @@ let grow mem delta =
   let after = create new_size in
   let dim = Array1_64.dim mem.content in
   Array1.blit (Array1_64.sub mem.content 0L dim) (Array1_64.sub after 0L dim);
-  mem.ty <- MemoryT (at, lim');
+  mem.ty <- MemoryT (at, pt, lim');
   mem.content <- after
 
 let load_byte mem a =
