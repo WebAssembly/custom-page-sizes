@@ -165,8 +165,8 @@ let match_globaltype c (GlobalT (mut1, t1)) (GlobalT (mut2, t2)) =
   | Cons -> true
   | Var -> match_valtype c t2 t1
 
-let match_memorytype c (MemoryT (at1, lim1)) (MemoryT (at2, lim2)) =
-  at1 = at2 && match_limits c lim1 lim2
+let match_memorytype c (MemoryT (at1, lim1, pt1)) (MemoryT (at2, lim2, pt2)) =
+  at1 = at2 && pt1 = pt2 && match_limits c lim1 lim2
 
 let match_tabletype c (TableT (at1, lim1, t1)) (TableT (at2, lim2, t2)) =
   at1 = at2 && match_limits c lim1 lim2 &&

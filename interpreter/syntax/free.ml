@@ -118,7 +118,7 @@ and deftype = function
 
 let tagtype (TagT ut) = typeuse ut
 let globaltype (GlobalT (_mut, t)) = valtype t
-let memorytype (MemoryT (_at, _lim)) = empty
+let memorytype (MemoryT (_at, _pt, _lim)) = empty
 let tabletype (TableT (_at, _lim, t)) = reftype t
 
 let externtype = function

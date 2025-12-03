@@ -104,6 +104,9 @@ let check_limits {min; max} range at msg =
     require (I64.le_u min max) at
       "size minimum must not be greater than maximum"
 
+let check_pagetype (PageT ps) at =
+  require (ps = 0x10000 || ps = 1) at "page size must be 1 or 64KiB"
+
 let check_numtype (c : context) (t : numtype) at =
   ()
 
@@ -196,13 +199,14 @@ let check_globaltype (c : context) (gt : globaltype) at =
   check_valtype c t at
 
 let check_memorytype (c : context) (mt : memorytype) at =
-  let MemoryT (at_, lim) = mt in
+  let MemoryT (at_, lim, pt) = mt in
   let sz, s =
     match at_ with
     | I32AT -> 0x1_0000L, "2^16 pages (4 GiB) for i32"
     | I64AT -> 0x1_0000_0000_0000L, "2^48 pages (256 TiB) for i64"
   in
-  check_limits lim sz at ("memory size must be at most " ^ s)
+  check_limits lim sz at ("memory size must be at most " ^ s);
+  check_pagetype pt at
 
 let check_tabletype (c : context) (tt : tabletype) at =
   let TableT (at_, lim, t) = tt in
@@ -384,7 +388,7 @@ let check_memop (c : context) (memop : ('t, 's) memop) ty_size get_sz at =
   in
   require (1 lsl memop.align >= 1 && 1 lsl memop.align <= size) at
     "alignment must not be larger than natural";
-  let MemoryT (at_, _lim) = memory c (0l @@ at) in
+  let MemoryT (at_, _lim, _pt) = memory c (0l @@ at) in
   if at_ = I32AT then
     require (I64.lt_u memop.offset 0x1_0000_0000L) at
       "offset out of range";
@@ -648,60 +652,60 @@ let rec check_instr (c : context) (e : instr) (s : infer_resulttype) : infer_ins
     [] --> [], []
 
   | Load (x, memop) ->
-    let MemoryT (at, _lim) = memory c x in
+    let MemoryT (at, _lim, _pt) = memory c x in
     let t = check_memop c memop num_size (Lib.Option.map fst) e.at in
     [NumT (numtype_of_addrtype at)] --> [NumT t], []
 
   | Store (x, memop) ->
-    let MemoryT (at, _lim) = memory c x in
+    let MemoryT (at, _lim, _pt) = memory c x in
     let t = check_memop c memop num_size (fun sz -> sz) e.at in
     [NumT (numtype_of_addrtype at); NumT t] --> [], []
 
   | VecLoad (x, memop) ->
-    let MemoryT (at, _lim) = memory c x in
+    let MemoryT (at, _lim, _pt) = memory c x in
     let t = check_memop c memop vec_size (Lib.Option.map fst) e.at in
     [NumT (numtype_of_addrtype at)] --> [VecT t], []
 
   | VecStore (x, memop) ->
-    let MemoryT (at, _lim) = memory c x in
+    let MemoryT (at, _lim, _pt) = memory c x in
     let t = check_memop c memop vec_size (fun _ -> None) e.at in
     [NumT (numtype_of_addrtype at); VecT t] --> [], []
 
   | VecLoadLane (x, memop, i) ->
-    let MemoryT (at, _lim) = memory c x in
+    let MemoryT (at, _lim, _pt) = memory c x in
     let t = check_memop c memop vec_size (fun sz -> Some sz) e.at in
     require (I8.to_int_u i < vec_size t / Pack.packed_size memop.pack) e.at
       "invalid lane index";
     [NumT (numtype_of_addrtype at); VecT t] -->  [VecT t], []
 
   | VecStoreLane (x, memop, i) ->
-    let MemoryT (at, _lim) = memory c x in
+    let MemoryT (at, _lim, _pt) = memory c x in
     let t = check_memop c memop vec_size (fun sz -> Some sz) e.at in
     require (I8.to_int_u i < vec_size t / Pack.packed_size memop.pack) e.at
       "invalid lane index";
     [NumT (numtype_of_addrtype at); VecT t] -->  [], []
 
   | MemorySize x ->
-    let MemoryT (at, _lim) = memory c x in
+    let MemoryT (at, _lim, _pt) = memory c x in
     [] --> [NumT (numtype_of_addrtype at)], []
 
   | MemoryGrow x ->
-    let MemoryT (at, _lim) = memory c x in
+    let MemoryT (at, _lim, _pt) = memory c x in
     [NumT (numtype_of_addrtype at)] --> [NumT (numtype_of_addrtype at)], []
 
   | MemoryFill x ->
-    let MemoryT (at, _lim) = memory c x in
+    let MemoryT (at, _lim, _pt) = memory c x in
     [NumT (numtype_of_addrtype at); NumT I32T;
       NumT (numtype_of_addrtype at)] --> [], []
 
   | MemoryCopy (x, y)->
-    let MemoryT (at1, _lib1) = memory c x in
-    let MemoryT (at2, _lib2) = memory c y in
+    let MemoryT (at1, _pt, _lib1) = memory c x in
+    let MemoryT (at2, _pt, _lib2) = memory c y in
     [NumT (numtype_of_addrtype at1); NumT (numtype_of_addrtype at2);
       NumT (numtype_of_addrtype (min at1 at2))] --> [], []
 
   | MemoryInit (x, y) ->
-    let MemoryT (at, _lib) = memory c x in
+    let MemoryT (at, _pt, _lib) = memory c x in
     let () = data c y in
     [NumT (numtype_of_addrtype at); NumT I32T; NumT I32T] --> [], []
 
@@ -1071,7 +1075,7 @@ let check_datamode (c : context) (mode : segmentmode) =
   match mode.it with
   | Passive -> ()
   | Active (x, offset) ->
-    let MemoryT (at, _) = memory c x in
+    let MemoryT (at, _, _) = memory c x in
     check_const c offset (NumT (numtype_of_addrtype at))
   | Declarative -> assert false
 

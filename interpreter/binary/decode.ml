@@ -296,7 +296,7 @@ let globaltype s =
 
 let memorytype s =
   let at, lim = limits u64 s in
-  MemoryT (at, lim)
+  MemoryT (at, lim, PageT 0x10000) (* TODO(custom-page-sizes) *)
 
 let tabletype s =
   let t = reftype s in

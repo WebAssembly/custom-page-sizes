@@ -466,7 +466,7 @@ tabletype :
   | addrtype limits reftype { fun c -> TableT ($1, $2, $3 c) }
 
 memorytype :
-  | addrtype limits { fun c -> MemoryT ($1, $2) }
+  | addrtype limits { fun c -> MemoryT ($1, $2, PageT 0x10000) }
 
 limits :
   | NAT { {min = nat64 $1 $loc($1); max = None} }
@@ -1130,7 +1130,7 @@ memory_fields :
     { fun c x loc ->
       let size = Int64.(div (add (of_int (String.length $4)) 65535L) 65536L) in
       let offset = [at_const $1 (0L @@ loc) @@ loc] @@ loc in
-      [Memory (MemoryT ($1, {min = size; max = Some size})) @@ loc],
+      [Memory (MemoryT ($1, {min = size; max = Some size}, PageT 0x10000)) @@ loc],
       [Data ($4, Active (x, offset) @@ loc) @@ loc],
       [], [] }
 

@@ -28,7 +28,7 @@ let table64 =
   ExternTable (Table.alloc tt (NullRef FuncHT))
 
 let memory =
-  let mt = MemoryT (I32AT, {min = 1L; max = Some 2L}) in
+  let mt = MemoryT (I32AT, {min = 1L; max = Some 2L}, PageT 0x10000) in
   ExternMemory (Memory.alloc mt)
 
 let func f ts1 ts2 =
