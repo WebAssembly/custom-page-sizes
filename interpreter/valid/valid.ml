@@ -104,6 +104,9 @@ let check_limits {min; max} range at msg =
     require (I64.le_u min max) at
       "size minimum must not be greater than maximum"
 
+let check_pagesize (PageT ps) at =
+  require (ps = 0x10000 || ps = 1) at "page size must be 1 or 64KiB"
+
 let check_numtype (c : context) (t : numtype) at =
   ()
 
@@ -202,7 +205,8 @@ let check_memorytype (c : context) (mt : memorytype) at =
     | I32AT -> 0x1_0000L, "2^16 pages (4 GiB) for i32"
     | I64AT -> 0x1_0000_0000_0000L, "2^48 pages (256 TiB) for i64"
   in
-  check_limits lim sz at ("memory size must be at most " ^ s)
+  check_limits lim sz at ("memory size must be at most " ^ s);
+  check_pagesize pt at
 
 let check_tabletype (c : context) (tt : tabletype) at =
   let TableT (at_, lim, t) = tt in
