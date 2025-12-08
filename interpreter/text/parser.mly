@@ -321,6 +321,7 @@ let parse_annots (m : module_) : Custom.section list =
 %token VEC_SHUFFLE
 %token<Ast.laneidx -> Ast.instr'> VEC_EXTRACT VEC_REPLACE
 %token FUNC START TYPE PARAM RESULT LOCAL GLOBAL
+%token PAGESIZE
 %token TABLE ELEM MEMORY TAG DATA DECLARE OFFSET ITEM IMPORT EXPORT
 %token MODULE BIN QUOTE DEFINITION INSTANCE
 %token SCRIPT REGISTER INVOKE GET
@@ -465,8 +466,32 @@ subtype :
 tabletype :
   | addrtype limits reftype { fun c -> TableT ($1, $2, $3 c) }
 
+pagetype :
+  | LPAR PAGESIZE NAT RPAR
+    {
+      let v0 =
+        try int_of_string $3
+        with Failure _ ->
+          error (at $sloc) "invalid custom page size"
+      in
+      if v0 <= 0 then
+        error (at $sloc) "invalid custom page size";
+
+      (* Compute log2 and validate power-of-two in one loop *)
+      let rec loop v acc =
+        if (v land 1) = 1 then
+          if v = 1 then acc
+          else error (at $sloc) "invalid custom page size"
+        else
+          loop (v lsr 1) (acc + 1)
+      in
+      PageT (loop v0 0)
+    }
+  | { PageT 16 }
+
+
 memorytype :
-  | addrtype limits { fun c -> MemoryT ($1, $2, PageT 16) }
+  | addrtype limits pagetype { fun c -> MemoryT ($1, $2, $3) }
 
 limits :
   | NAT { {min = nat64 $1 $loc($1); max = None} }
@@ -1117,6 +1142,18 @@ memory :
       fun () -> $4 c x $sloc }
 
 memory_fields :
+  | addrtype pagetype LPAR DATA string_list RPAR  /* Sugar */
+    { fun c x loc ->
+      let len64 = (Int64.of_int (String.length $5)) in
+      let size =
+	match $2 with
+	| PageT 0 -> len64 (* will be a validation error *)
+	| PageT 1 -> len64
+	| PageT ps -> Int64.(div (add len64 (sub (of_int ps) 1L)) (of_int ps)) in
+      let offset = [at_const $1 (0L @@ loc) @@ loc] @@ loc in
+      [Memory (MemoryT ($1, {min = size; max = Some size}, $2)) @@ loc],
+      [Data ($5, Active (x, offset) @@ loc) @@ loc],
+      [], [] }
   | memorytype
     { fun c x loc -> [Memory ($1 c) @@ loc], [], [], [] }
   | inline_import memorytype  /* Sugar */
@@ -1126,14 +1163,6 @@ memory_fields :
   | inline_export memory_fields  /* Sugar */
     { fun c x loc -> let mems, data, ims, exs = $2 c x loc in
       mems, data, ims, $1 (MemoryX x) c :: exs }
-  | addrtype LPAR DATA string_list RPAR  /* Sugar */
-    { fun c x loc ->
-      let size = Int64.(div (add (of_int (String.length $4)) 65535L) 65536L) in
-      let offset = [at_const $1 (0L @@ loc) @@ loc] @@ loc in
-      [Memory (MemoryT ($1, {min = size; max = Some size}, PageT 16)) @@ loc],
-      [Data ($4, Active (x, offset) @@ loc) @@ loc],
-      [], [] }
-
 
 elemkind :
   | FUNC { (NoNull, FuncHT) }

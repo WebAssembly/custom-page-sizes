@@ -22,10 +22,13 @@ let valid_limits {min; max} =
   | None -> true
   | Some m -> I64.le_u min m
 
-let valid_size at i =
-  match at with
-  | I32AT -> I64.le_u i 0xffffL
-  | I64AT -> true
+let valid_size at pt i =
+  match pt with
+  | PageT 1 -> true
+  | PageT ps ->
+     match at with
+     | I32AT -> I64.le_u i (Int64.div 0xffffffffL (Int64.of_int ps))
+     | I64AT -> true
 
 let create n (PageT ps) =
   try
@@ -37,7 +40,7 @@ let create n (PageT ps) =
 
 let alloc (MemoryT (at, lim, pt) as ty) =
   assert Free.((memorytype ty).types = Set.empty);
-  if not (valid_size at lim.min) then raise SizeOverflow;
+  if not (valid_size at pt lim.min) then raise SizeOverflow;
   if not (valid_limits lim) then raise Type;
   {ty; content = create lim.min pt}
 
@@ -63,7 +66,7 @@ let grow mem delta =
   let new_size = Int64.add old_size delta in
   if I64.gt_u old_size new_size then raise SizeOverflow else
   let lim' = {lim with min = new_size} in
-  if not (valid_size at new_size) then raise SizeOverflow else
+  if not (valid_size at pt new_size) then raise SizeOverflow else
   if not (valid_limits lim') then raise SizeLimit else
   let after = create new_size pt in
   let dim = Array1_64.dim mem.content in
