@@ -489,8 +489,8 @@ pagetype :
     }
   | { PageT 16 }
 
-
 memorytype :
+  | addrtype limits { fun c -> MemoryT ($1, $2, PageT 0x10000) }
   | addrtype limits pagetype { fun c -> MemoryT ($1, $2, $3) }
 
 limits :
@@ -1142,18 +1142,6 @@ memory :
       fun () -> $4 c x $sloc }
 
 memory_fields :
-  | addrtype pagetype LPAR DATA string_list RPAR  /* Sugar */
-    { fun c x loc ->
-      let len64 = (Int64.of_int (String.length $5)) in
-      let size =
-	match $2 with
-	| PageT 0 -> len64 (* will be a validation error *)
-	| PageT 1 -> len64
-	| PageT ps -> Int64.(div (add len64 (sub (of_int ps) 1L)) (of_int ps)) in
-      let offset = [at_const $1 (0L @@ loc) @@ loc] @@ loc in
-      [Memory (MemoryT ($1, {min = size; max = Some size}, $2)) @@ loc],
-      [Data ($5, Active (x, offset) @@ loc) @@ loc],
-      [], [] }
   | memorytype
     { fun c x loc -> [Memory ($1 c) @@ loc], [], [], [] }
   | inline_import memorytype  /* Sugar */
@@ -1163,6 +1151,18 @@ memory_fields :
   | inline_export memory_fields  /* Sugar */
     { fun c x loc -> let mems, data, ims, exs = $2 c x loc in
       mems, data, ims, $1 (MemoryX x) c :: exs }
+  | addrtype pagetype LPAR DATA string_list RPAR  /* Sugar */
+    { fun c x loc ->
+      let len64 = (Int64.of_int (String.length $5)) in
+      let size =
+        match $2 with
+        | PageT 0 -> len64 (* will be a validation error *)
+        | PageT 1 -> len64
+        | PageT ps -> Int64.(div (add len64 (sub (of_int ps) 1L)) (of_int ps)) in
+      let offset = [at_const $1 (0L @@ loc) @@ loc] @@ loc in
+      [Memory (MemoryT ($1, {min = size; max = Some size}, $2)) @@ loc],
+      [Data ($5, Active (x, offset) @@ loc) @@ loc],
+      [], [] }
 
 elemkind :
   | FUNC { (NoNull, FuncHT) }
