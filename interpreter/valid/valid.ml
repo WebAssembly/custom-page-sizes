@@ -200,6 +200,7 @@ let check_globaltype (c : context) (gt : globaltype) at =
 
 let check_memorytype (c : context) (mt : memorytype) at =
   let MemoryT (at_, lim, pt) = mt in
+  check_pagetype pt at;
   let sz, s =
     match pt with
     | PageT 0x10000 ->
@@ -211,8 +212,7 @@ let check_memorytype (c : context) (mt : memorytype) at =
        | I32AT -> 0xFFFF_FFFFL, "2^32 - 1 bytes for i32"
        | I64AT -> 0xFFFF_FFFF_FFFF_FFFFL, "2^64 - 1 bytes for i64")
   in
-  check_limits lim sz at ("memory size must be at most " ^ s);
-  check_pagetype pt at
+  check_limits lim sz at ("memory size must be at most " ^ s)
 
 let check_tabletype (c : context) (tt : tabletype) at =
   let TableT (at_, lim, t) = tt in

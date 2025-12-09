@@ -1153,7 +1153,7 @@ memory_fields :
       mems, data, ims, $1 (MemoryX x) c :: exs }
   | addrtype pagetype LPAR DATA string_list RPAR  /* Sugar */
     { fun c x loc ->
-      let len64 = (Int64.of_int (String.length $5)) in
+      let len64 = Int64.of_int (String.length $5) in
       let size =
         match $2 with
         | PageT 0 -> len64 (* will be a validation error *)
