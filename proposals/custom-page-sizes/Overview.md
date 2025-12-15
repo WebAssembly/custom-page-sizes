@@ -410,6 +410,7 @@ Tests:
 
 Engines:
 
+* [x] [**SpiderMonkey (Firefox)**](https://bugzilla.mozilla.org/show_bug.cgi?id=1977854)
 * [x] [toywasm](https://github.com/yamt/toywasm/pull/181)
 * [x] [WABT's interpreter](https://github.com/WebAssembly/wabt/pull/2502)
 * [x] [WABT's `wasm2c`](https://github.com/WebAssembly/wabt/pull/2508)
