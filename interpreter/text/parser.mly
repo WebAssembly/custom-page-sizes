@@ -1149,18 +1149,16 @@ memory_fields :
       [Import (fst $1, snd $1, ExternMemoryT ($2 c)) @@ loc], [] }
   | inline_export memory_fields  /* Sugar */
     { fun c x loc -> let mems, data, ims, exs = $2 c x loc in
-      mems, data, ims, $1 (MemoryX x) c :: exs }
+		     mems, data, ims, $1 (MemoryX x) c :: exs }
   | addrtype pagetype LPAR DATA string_list RPAR  /* Sugar */
     { fun c x loc ->
       let len64 = Int64.of_int (String.length $5) in
       let size =
-        match $2 with
-        | PageT 0 -> len64
-	| PageT ps ->
-           let page_size = Int64.shift_left 1L ps in
-           let mask = Int64.sub page_size 1L in
-           let rounded = Int64.logand (Int64.add len64 mask) (Int64.lognot mask) in
-           Int64.shift_right rounded ps
+        let PageT ps = $2 in
+        let page_size = Int64.shift_left 1L ps in
+        let mask = Int64.sub page_size 1L in
+        let rounded = Int64.logand (Int64.add len64 mask) (Int64.lognot mask) in
+        Int64.shift_right rounded ps
       in
       let offset = [at_const $1 (0L @@ loc) @@ loc] @@ loc in
       [Memory (MemoryT ($1, {min = size; max = Some size}, $2)) @@ loc],
