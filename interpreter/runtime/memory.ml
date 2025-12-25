@@ -24,7 +24,7 @@ let valid_limits {min; max} =
 
 let valid_size at pt i =
   match pt with
-  | PageT 1 -> true
+  | PageT 0 -> true
   | PageT ps ->
      match at with
      | I32AT -> I64.le_u i (Int64.shift_right 0xffffffffL ps)
