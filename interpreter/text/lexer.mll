@@ -780,6 +780,7 @@ rule token = parse
       | "start" -> START
       | "import" -> IMPORT
       | "export" -> EXPORT
+      | "pagesize" -> PAGESIZE
 
       | "module" -> MODULE
       | "binary" -> BIN
