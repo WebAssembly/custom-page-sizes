@@ -27,7 +27,7 @@ let valid_size at pt i =
   | PageT 1 -> true
   | PageT ps ->
      match at with
-     | I32AT -> I64.le_u i (Int64.div 0xffffffffL (Int64.of_int ps))
+     | I32AT -> I64.le_u i (Int64.shift_right 0xffffffffL ps)
      | I64AT -> true
 
 let create n (PageT ps) =
