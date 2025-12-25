@@ -487,10 +487,9 @@ pagetype :
       in
       PageT (loop v0 0)
     }
-  | { PageT 16 }
 
 memorytype :
-  | addrtype limits { fun c -> MemoryT ($1, $2, PageT 0x10000) }
+  | addrtype limits { fun c -> MemoryT ($1, $2, PageT 16) }
   | addrtype limits pagetype { fun c -> MemoryT ($1, $2, $3) }
 
 limits :
@@ -1156,9 +1155,13 @@ memory_fields :
       let len64 = Int64.of_int (String.length $5) in
       let size =
         match $2 with
-        | PageT 0 -> len64 (* will be a validation error *)
-        | PageT 1 -> len64
-        | PageT ps -> Int64.(div (add len64 (sub (of_int ps) 1L)) (of_int ps)) in
+        | PageT 0 -> len64
+	| PageT ps ->
+           let page_size = Int64.shift_left 1L ps in
+           let mask = Int64.sub page_size 1L in
+           let rounded = Int64.logand (Int64.add len64 mask) (Int64.lognot mask) in
+           Int64.shift_right rounded ps
+      in
       let offset = [at_const $1 (0L @@ loc) @@ loc] @@ loc in
       [Memory (MemoryT ($1, {min = size; max = Some size}, $2)) @@ loc],
       [Data ($5, Active (x, offset) @@ loc) @@ loc],
