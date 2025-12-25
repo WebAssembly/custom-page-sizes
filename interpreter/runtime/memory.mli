@@ -14,8 +14,6 @@ exception SizeOverflow
 exception SizeLimit
 exception OutOfMemory
 
-val page_size : int64
-
 val alloc : memorytype -> memory (* raises Type, SizeOverflow, OutOfMemory *)
 val type_of : memory -> memorytype
 val addrtype_of : memory -> addrtype

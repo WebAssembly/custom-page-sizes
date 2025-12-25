@@ -105,7 +105,7 @@ let check_limits {min; max} range at msg =
       "size minimum must not be greater than maximum"
 
 let check_pagetype (PageT ps) at =
-  require (ps = 0x10000 || ps = 1) at "page size must be 1 or 64KiB"
+  require (ps = 16 || ps = 0) at "page size must be 1 or 64KiB"
 
 let check_numtype (c : context) (t : numtype) at =
   ()
