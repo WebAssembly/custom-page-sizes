@@ -433,6 +433,7 @@ Validation:
 
 * [x] [`wasmparser` in `wasm-tools`](https://docs.rs/wasmparser/0.210.0/wasmparser/struct.WasmFeatures.html#associatedconstant.CUSTOM_PAGE_SIZES)
 * [x] [WABT's validator](https://github.com/WebAssembly/wabt/pull/2502)
+* [x] [`wat_service` in wasm-language-tools](https://github.com/g-plane/wasm-language-tools/commit/12d16cbad522353d0eac83c7dd56fd319b0ffaa2)
 
 Binary encoders:
 
@@ -443,6 +444,7 @@ Text parsers:
 
 * [x] [`wat` and `wast` in `wasm-tools`](https://github.com/bytecodealliance/wasm-tools/blob/d6436035fefa4861e64b27d0c416cfe9f309369d/crates/wast/src/core/types.rs#L643)
 * [x] [WABT's `.wat` parser](https://github.com/WebAssembly/wabt/pull/2502)
+* [x] [`wat_parser` in wasm-language-tools](https://github.com/g-plane/wasm-language-tools/commit/12d16cbad522353d0eac83c7dd56fd319b0ffaa2)
 
 Fuzzing and test-case generation:
 
