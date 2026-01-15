@@ -32,7 +32,7 @@ let valid_size at pt i =
 
 let create n (PageT ps) =
   try
-    let size = Int64.(shift_left n ps) in
+    let size = Int64.shift_left n ps in
     let mem = Array1_64.create Int8_unsigned C_layout size in
     Array1.fill mem 0;
     mem
@@ -48,7 +48,7 @@ let bound mem =
   Array1_64.dim mem.content
 
 let pagesize mem =
-  let MemoryT (_, _, PageT x) = mem.ty in (Int64.shift_left 1L x)
+  let MemoryT (_, _, PageT x) = mem.ty in Int64.shift_left 1L x
 
 let size mem =
   Int64.(div (bound mem) (pagesize mem))

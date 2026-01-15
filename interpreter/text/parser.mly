@@ -468,25 +468,10 @@ tabletype :
 
 pagetype :
   | LPAR PAGESIZE NAT RPAR
-    {
-      let v0 =
-        try int_of_string $3
-        with Failure _ ->
-          error (at $sloc) "invalid custom page size"
-      in
-      if v0 <= 0 then
-        error (at $sloc) "invalid custom page size";
-
-      (* Compute log2 and validate power-of-two in one loop *)
-      let rec loop v acc =
-        if (v land 1) = 1 then
-          if v = 1 then acc
-          else error (at $sloc) "invalid custom page size"
-        else
-          loop (v lsr 1) (acc + 1)
-      in
-      PageT (loop v0 0)
-    }
+    { let n = (nat32 $3 $loc($3)) in
+      if not (Lib.Int32.is_power_of_two_unsigned n) then
+        error (at $sloc) "invalid custom page size: must be power of two";
+      PageT (Int32.to_int (Lib.Int32.log2_unsigned n)) }
 
 memorytype :
   | addrtype limits { fun c -> MemoryT ($1, $2, PageT 16) }
@@ -1152,14 +1137,9 @@ memory_fields :
 		     mems, data, ims, $1 (MemoryX x) c :: exs }
   | addrtype pagetype LPAR DATA string_list RPAR  /* Sugar */
     { fun c x loc ->
-      let len64 = Int64.of_int (String.length $5) in
-      let size =
-        let PageT ps = $2 in
-        let page_size = Int64.shift_left 1L ps in
-        let mask = Int64.sub page_size 1L in
-        let rounded = Int64.logand (Int64.add len64 mask) (Int64.lognot mask) in
-        Int64.shift_right rounded ps
-      in
+      let PageT ps = $2 in
+      let page_size = Int64.shift_left 1L ps in
+      let size = Int64.(div (add (of_int (String.length $5)) (sub page_size 1L)) page_size) in
       let offset = [at_const $1 (0L @@ loc) @@ loc] @@ loc in
       [Memory (MemoryT ($1, {min = size; max = Some size}, $2)) @@ loc],
       [Data ($5, Active (x, offset) @@ loc) @@ loc],

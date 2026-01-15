@@ -313,8 +313,16 @@ struct
       if n = 1l then acc else loop (Int32.add acc 1l) (Int32.shift_right_logical n 1) in
     loop 0l n
 
+  let log2_unsigned n =
+    let rec loop acc n =
+      if n = 1l then acc else loop (Int32.add acc 1l) (Int32.shift_right_logical n 1) in
+    loop 0l n
+  
   let is_power_of_two n =
     if n < 0l then failwith "is_power_of_two";
+    n <> 0l && Int32.(logand n (sub n 1l)) = 0l
+
+  let is_power_of_two_unsigned n =
     n <> 0l && Int32.(logand n (sub n 1l)) = 0l
 end
 
