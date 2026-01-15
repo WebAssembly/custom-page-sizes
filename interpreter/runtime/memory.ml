@@ -22,14 +22,17 @@ let valid_limits {min; max} =
   | None -> true
   | Some m -> I64.le_u min m
 
-let valid_size at i =
-  match at with
-  | I32AT -> I64.le_u i 0xffffL
-  | I64AT -> true
+let valid_size at pt i =
+  match pt with
+  | PageT 0 -> true
+  | PageT ps ->
+     match at with
+     | I32AT -> I64.le_u i (Int64.shift_right 0xffffffffL ps)
+     | I64AT -> true
 
 let create n (PageT ps) =
   try
-    let size = Int64.(shift_left n ps) in
+    let size = Int64.shift_left n ps in
     let mem = Array1_64.create Int8_unsigned C_layout size in
     Array1.fill mem 0;
     mem
@@ -37,7 +40,7 @@ let create n (PageT ps) =
 
 let alloc (MemoryT (at, lim, pt) as ty) =
   assert Free.((memorytype ty).types = Set.empty);
-  if not (valid_size at lim.min) then raise SizeOverflow;
+  if not (valid_size at pt lim.min) then raise SizeOverflow;
   if not (valid_limits lim) then raise Type;
   {ty; content = create lim.min pt}
 
@@ -45,7 +48,7 @@ let bound mem =
   Array1_64.dim mem.content
 
 let pagesize mem =
-  let MemoryT (_, _, PageT x) = mem.ty in (Int64.shift_left 1L x)
+  let MemoryT (_, _, PageT x) = mem.ty in Int64.shift_left 1L x
 
 let size mem =
   Int64.(div (bound mem) (pagesize mem))
@@ -63,7 +66,7 @@ let grow mem delta =
   let new_size = Int64.add old_size delta in
   if I64.gt_u old_size new_size then raise SizeOverflow else
   let lim' = {lim with min = new_size} in
-  if not (valid_size at new_size) then raise SizeOverflow else
+  if not (valid_size at pt new_size) then raise SizeOverflow else
   if not (valid_limits lim') then raise SizeLimit else
   let after = create new_size pt in
   let dim = Array1_64.dim mem.content in
