@@ -204,7 +204,7 @@ let check_memorytype (c : context) (mt : memorytype) at =
   let sz, s =
     match at_, pt with
     | I32AT, PageT 16 -> 0x1_0000L, "2^16 pages (4 GiB) for i32"
-    | I64AT, PageT 16 -> 0x1_0000_0000_0000L, "2^48 pages (256 TiB) for i64")
+    | I64AT, PageT 16 -> 0x1_0000_0000_0000L, "2^48 pages (256 TiB) for i64"
     (* TODO: divide by page size, what about error msg? *)
     | I32AT, _ -> 0xFFFF_FFFFL, "2^32 - 1 bytes for i32"
     | I64AT, _ -> 0xFFFF_FFFF_FFFF_FFFFL, "2^64 - 1 bytes for i64"
