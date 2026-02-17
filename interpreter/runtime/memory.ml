@@ -23,12 +23,9 @@ let valid_limits {min; max} =
   | Some m -> I64.le_u min m
 
 let valid_size at pt i =
-  match pt with
-  | PageT 0 -> true
-  | PageT ps ->
-     match at with
-     | I32AT -> I64.le_u i (Int64.shift_right 0xffffffffL ps)
-     | I64AT -> true
+  match at, pt with
+  | I32AT, PageT ps -> I64.le_u i (Int64.shift_right 0xffff_ffffL ps)
+  | _, _ -> true
 
 let create n (PageT ps) =
   try
