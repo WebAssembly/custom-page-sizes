@@ -466,15 +466,14 @@ subtype :
 tabletype :
   | addrtype limits reftype { fun c -> TableT ($1, $2, $3 c) }
 
-pagetype :
+%inline pagetype :
   | LPAR PAGESIZE NAT RPAR
     { let n = (nat32 $3 $loc($3)) in
       if not (Lib.Int32.is_power_of_two_unsigned n) then
         error (at $sloc) "invalid custom page size: must be power of two";
       PageT (Int32.to_int (Lib.Int32.log2_unsigned n)) }
-
+  | /* empty */ { PageT 16 }  /* Sugar */
 memorytype :
-  | addrtype limits { fun c -> MemoryT ($1, $2, PageT 16) }
   | addrtype limits pagetype { fun c -> MemoryT ($1, $2, $3) }
 
 limits :
@@ -1135,14 +1134,6 @@ memory_fields :
   | inline_export memory_fields  /* Sugar */
     { fun c x loc -> let mems, data, ims, exs = $2 c x loc in
 		     mems, data, ims, $1 (MemoryX x) c :: exs }
-  | addrtype LPAR DATA string_list RPAR  /* Sugar */
-    { fun c x loc ->
-      let page_size = 65536L in
-      let size = Int64.(div (add (of_int (String.length $4)) (sub page_size 1L)) page_size) in
-      let offset = [at_const $1 (0L @@ loc) @@ loc] @@ loc in
-      [Memory (MemoryT ($1, {min = size; max = Some size}, (PageT 16))) @@ loc],
-      [Data ($4, Active (x, offset) @@ loc) @@ loc],
-      [], [] }
   | addrtype pagetype LPAR DATA string_list RPAR  /* Sugar */
     { fun c x loc ->
       let PageT ps = $2 in
