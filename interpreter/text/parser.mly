@@ -473,6 +473,7 @@ tabletype :
         error (at $sloc) "invalid custom page size: must be power of two";
       PageT (Int32.to_int (Lib.Int32.log2_unsigned n)) }
   | /* empty */ { PageT 16 }  /* Sugar */
+
 memorytype :
   | addrtype limits pagetype { fun c -> MemoryT ($1, $2, $3) }
 
@@ -1133,7 +1134,7 @@ memory_fields :
       [Import (fst $1, snd $1, ExternMemoryT ($2 c)) @@ loc], [] }
   | inline_export memory_fields  /* Sugar */
     { fun c x loc -> let mems, data, ims, exs = $2 c x loc in
-		     mems, data, ims, $1 (MemoryX x) c :: exs }
+      mems, data, ims, $1 (MemoryX x) c :: exs }
   | addrtype pagetype LPAR DATA string_list RPAR  /* Sugar */
     { fun c x loc ->
       let PageT ps = $2 in
@@ -1143,6 +1144,7 @@ memory_fields :
       [Memory (MemoryT ($1, {min = size; max = Some size}, $2)) @@ loc],
       [Data ($5, Active (x, offset) @@ loc) @@ loc],
       [], [] }
+
 
 elemkind :
   | FUNC { (NoNull, FuncHT) }

@@ -315,12 +315,12 @@ struct
   let log2 n =
     if n <= 0l then failwith "log2" else log2_unsigned n
   
-  let is_power_of_two n =
-    if n < 0l then failwith "is_power_of_two";
-    n <> 0l && Int32.(logand n (sub n 1l)) = 0l
-
   let is_power_of_two_unsigned n =
     n <> 0l && Int32.(logand n (sub n 1l)) = 0l
+
+  let is_power_of_two n =
+    if n < 0l then failwith "is_power_of_two" else
+    is_power_of_two_unsigned n
 end
 
 module Int64 =
