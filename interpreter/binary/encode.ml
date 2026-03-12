@@ -187,6 +187,11 @@ struct
     let flags = flag (max <> None) 0 + flag (at = I64AT) 2 in
     byte flags; u64 min; opt u64 max
 
+  let memorylimits at {min; max} (PageT ps) =
+    let flags = flag (max <> None) 0 + flag (at = I64AT) 2 + flag (ps <> 16) 3 in
+    let ps_opt = if ps <> 16 then Some (Int32.of_int ps) else None in
+    byte flags; u64 min; opt u64 max; opt u32 ps_opt
+
   let tagtype = function
     | TagT ut -> u32 0x00l; typeuse u32 ut
 
@@ -194,7 +199,7 @@ struct
     | GlobalT (mut, t) -> valtype t; mutability mut
 
   let memorytype = function
-    | MemoryT (at, lim, pt) -> limits at lim (* TODO(custom-page-sizes) *)
+    | MemoryT (at, lim, pt) -> memorylimits at lim pt
 
   let tabletype = function
     | TableT (at, lim, t) -> reftype t; limits at lim

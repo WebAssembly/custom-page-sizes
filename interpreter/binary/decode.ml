@@ -285,6 +285,17 @@ let limits uN s =
   let max = opt uN has_max s in
   at, {min; max}
 
+let memorylimits uN s =
+  let flags = byte s in
+  require (flags land 0xf2 = 0) s (pos s - 1) "malformed limits flags";
+  let has_max = (flags land 1 = 1) in
+  let at = if flags land 4 = 4 then I64AT else I32AT in
+  let has_paget = (flags land 8 = 8) in
+  let min = uN s in
+  let max = opt uN has_max s in
+  let ps = if has_paget then Int32.to_int(u32 s) else 16 in
+  at, {min; max}, (PageT ps)
+
 let tagtype s =
   zero s;
   TagT (typeuse idx s)
@@ -295,8 +306,8 @@ let globaltype s =
   GlobalT (mut, t)
 
 let memorytype s =
-  let at, lim = limits u64 s in
-  MemoryT (at, lim, PageT 16) (* TODO(custom-page-sizes) *)
+  let at, lim, pt = memorylimits u64 s in
+  MemoryT (at, lim, pt)
 
 let tabletype s =
   let t = reftype s in
