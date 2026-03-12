@@ -183,14 +183,12 @@ struct
     | RecT [st] -> subtype st
     | RecT sts -> s7 (-0x32); vec subtype sts
 
-  let limits at {min; max} =
-    let flags = flag (max <> None) 0 + flag (at = I64AT) 2 in
-    byte flags; u64 min; opt u64 max
-
-  let memorylimits at {min; max} (PageT ps) =
-    let flags = flag (max <> None) 0 + flag (at = I64AT) 2 + flag (ps <> 16) 3 in
-    let ps_opt = if ps <> 16 then Some (Int32.of_int ps) else None in
-    byte flags; u64 min; opt u64 max; opt u32 ps_opt
+  let limits allow_pt at {min; max} pt_opt =
+    let ps = match pt_opt with Some (PageT ps) -> ps | None -> 16 in
+    let flags = flag (max <> None) 0 + flag (at = I64AT) 2 +
+                (if allow_pt then flag (ps <> 16) 3 else 0) in
+    byte flags; u64 min; opt u64 max;
+    if allow_pt && ps <> 16 then u32 (Int32.of_int ps)
 
   let tagtype = function
     | TagT ut -> u32 0x00l; typeuse u32 ut
@@ -199,10 +197,10 @@ struct
     | GlobalT (mut, t) -> valtype t; mutability mut
 
   let memorytype = function
-    | MemoryT (at, lim, pt) -> memorylimits at lim pt
+    | MemoryT (at, lim, pt) -> limits true at lim (Some pt)
 
   let tabletype = function
-    | TableT (at, lim, t) -> reftype t; limits at lim
+    | TableT (at, lim, t) -> reftype t; limits false at lim None
 
   let externtype = function
     | ExternFuncT ut -> byte 0x00; typeuse u32 ut
