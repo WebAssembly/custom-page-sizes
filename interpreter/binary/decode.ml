@@ -294,7 +294,7 @@ let memorylimits uN s =
   let min = uN s in
   let max = opt uN has_max s in
   let ps = if has_paget then Int32.to_int(u32 s) else 16 in
-  at, {min; max}, (PageT ps)
+  at, {min; max}, PageT ps
 
 let tagtype s =
   zero s;
