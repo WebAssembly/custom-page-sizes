@@ -276,14 +276,22 @@ let rectype s =
   | _ -> RecT [subtype s]
 
 
-let limits uN s =
+let limits allow_pt uN s =
   let flags = byte s in
-  require (flags land 0xfa = 0) s (pos s - 1) "malformed limits flags";
+  let mask = if allow_pt then 0xf2 else 0xfa in
+  require (flags land mask = 0) s (pos s - 1) "malformed limits flags";
   let has_max = (flags land 1 = 1) in
   let at = if flags land 4 = 4 then I64AT else I32AT in
   let min = uN s in
   let max = opt uN has_max s in
-  at, {min; max}
+  let pt =
+    if allow_pt then
+      let has_paget = (flags land 8 = 8) in
+      Some (PageT (if has_paget then Int32.to_int (u32 s) else 16))
+    else
+      None
+  in
+  at, {min; max}, pt
 
 let tagtype s =
   zero s;
@@ -295,12 +303,12 @@ let globaltype s =
   GlobalT (mut, t)
 
 let memorytype s =
-  let at, lim = limits u64 s in
-  MemoryT (at, lim, PageT 16) (* TODO(custom-page-sizes) *)
+  let at, lim, pt = limits true u64 s in
+  MemoryT (at, lim, Option.get pt)
 
 let tabletype s =
   let t = reftype s in
-  let at, lim = limits u64 s in
+  let at, lim, _ = limits false u64 s in
   TableT (at, lim, t)
 
 let externtype s =
