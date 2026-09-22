@@ -167,14 +167,14 @@ limits ::= 0x00 n:u64              ⇒ i32, {min n, max ϵ}, unshared, 65536
         |  0x05 n:u64 m:u64        ⇒ i64, {min n, max m}, unshared, 65536
         |  0x06 n:u64              ⇒ i64, {min n, max ϵ},   shared, 65536
         |  0x07 n:u64 m:u64        ⇒ i64, {min n, max m},   shared, 65536
-        |  0x08 n:u64       p:u32  ⇒ i32, {min n, max ϵ}, unshared, 2**p  if p <= 64
-        |  0x09 n:u64 m:u64 p:u32  ⇒ i32, {min n, max m}, unshared, 2**p  if p <= 64
-        |  0x0a n:u64       p:u32  ⇒ i32, {min n, max ϵ},   shared, 2**p  if p <= 64
-        |  0x0b n:u64 m:u64 p:u32  ⇒ i32, {min n, max m},   shared, 2**p  if p <= 64
-        |  0x0c n:u64       p:u32  ⇒ i64, {min n, max ϵ}, unshared, 2**p  if p <= 64
-        |  0x0d n:u64 m:u64 p:u32  ⇒ i64, {min n, max m}, unshared, 2**p  if p <= 64
-        |  0x0e n:u64       p:u32  ⇒ i64, {min n, max ϵ},   shared, 2**p  if p <= 64
-        |  0x0f n:u64 m:u64 p:u32  ⇒ i64, {min n, max m},   shared, 2**p  if p <= 64
+        |  0x08 n:u64       p:u32  ⇒ i32, {min n, max ϵ}, unshared, 2**p  if p < 64
+        |  0x09 n:u64 m:u64 p:u32  ⇒ i32, {min n, max m}, unshared, 2**p  if p < 64
+        |  0x0a n:u64       p:u32  ⇒ i32, {min n, max ϵ},   shared, 2**p  if p < 64
+        |  0x0b n:u64 m:u64 p:u32  ⇒ i32, {min n, max m},   shared, 2**p  if p < 64
+        |  0x0c n:u64       p:u32  ⇒ i64, {min n, max ϵ}, unshared, 2**p  if p < 64
+        |  0x0d n:u64 m:u64 p:u32  ⇒ i64, {min n, max m}, unshared, 2**p  if p < 64
+        |  0x0e n:u64       p:u32  ⇒ i64, {min n, max ϵ},   shared, 2**p  if p < 64
+        |  0x0f n:u64 m:u64 p:u32  ⇒ i64, {min n, max m},   shared, 2**p  if p < 64
 ```
 
 [limits-binary]: https://webassembly.github.io/spec/core/binary/types.html#limits
