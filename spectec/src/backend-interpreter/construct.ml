@@ -220,7 +220,10 @@ let al_to_tabletype: value -> tabletype = function
   | v -> error_value "tabletype" v
 
 let al_to_memorytype: value -> memorytype = function
-  | CaseV ("PAGE", [ at; limits ]) -> MemoryT (al_to_addrtype at, al_to_limits limits)
+  (* TODO(custom-page-sizes): AL has no page size field yet, so assume the
+     default page size. *)
+  | CaseV ("PAGE", [ at; limits ]) ->
+    MemoryT (al_to_addrtype at, al_to_limits limits, PageT 16)
   | v -> error_value "memorytype" v
 
 let al_to_tagtype: value -> tagtype = function
@@ -1209,7 +1212,9 @@ let al_of_tabletype = function
       CaseV ("", [ al_of_addrtype at; al_of_limits limits; al_of_reftype rt ])
 
 let al_of_memorytype = function
-  | MemoryT (at, limits) ->
+  (* TODO(custom-page-sizes): AL has no page size field yet, so the page size
+     is dropped here. *)
+  | MemoryT (at, limits, _pt) ->
     if !version <= 2 then
       CaseV ("PAGE", [                    al_of_limits limits ])
     else
