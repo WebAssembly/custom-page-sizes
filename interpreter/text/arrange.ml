@@ -118,8 +118,12 @@ let tagtype (TagT ut) =
 let globaltype (GlobalT (mut, t)) =
   [mutability (atom string_of_valtype t) mut]
 
+let pagetype = function
+  | PageT 16 -> []  (* default page size, leave implicit *)
+  | PageT ps -> [Node ("pagesize " ^ nat64 (Int64.shift_left 1L ps), [])]
+
 let memorytype (MemoryT (at, lim, pt)) =
-  [Atom (addrtype at ^ " " ^ limits nat64 lim)] (* TODO(custom-page-sizes) *)
+  Atom (addrtype at ^ " " ^ limits nat64 lim) :: pagetype pt
 
 let tabletype (TableT (at, lim, t)) =
   [Atom (addrtype at ^ " " ^ limits nat64 lim); atom reftype t]
