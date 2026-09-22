@@ -209,9 +209,21 @@ let check_memorytype (c : context) (mt : memorytype) at =
     match at_, pt with
     | I32AT, PageT 16 -> 0x1_0000L, "2^16 pages (4 GiB) for i32"
     | I64AT, PageT 16 -> 0x1_0000_0000_0000L, "2^48 pages (256 TiB) for i64"
-    (* TODO: divide by page size, what about error msg? *)
-    | I32AT, _ -> 0xFFFF_FFFFL, "2^32 - 1 bytes for i32"
-    | I64AT, _ -> 0xFFFF_FFFF_FFFF_FFFFL, "2^64 - 1 bytes for i64"
+    | _, PageT ps ->
+      (* A memory of n pages spans n * 2^ps bytes, so n is bounded both by the
+         largest value the address type can represent, 2^bits - 1, and by how
+         many pages fit in its address space, 2^bits / 2^ps.  The latter does
+         not fit in a u64 when pages are single bytes, so take the minimum
+         one below the bound and add the one back afterwards. *)
+      let bits = match at_ with I32AT -> 32 | I64AT -> 64 in
+      let repr = Int64.shift_right_logical (-1L) (64 - bits) in
+      let fits = Int64.shift_right_logical repr ps in
+      let sz =
+        if ps > bits then 0L
+        else if I64.lt_u fits (Int64.sub repr 1L) then Int64.add fits 1L
+        else repr
+      in
+      sz, I64.to_string_u sz ^ " pages for " ^ string_of_addrtype at_
   in
   check_limits lim sz at ("memory size must be at most " ^ s)
 
