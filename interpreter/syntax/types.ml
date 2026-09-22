@@ -223,7 +223,7 @@ let subst_globaltype s = function
   | GlobalT (mut, t) ->  GlobalT (mut, subst_valtype s t)
 
 let subst_memorytype s = function
-  | MemoryT (at, pt, lim) -> MemoryT (subst_addrtype s at, pt, lim)
+  | MemoryT (at, lim, pt) -> MemoryT (subst_addrtype s at, lim, pt)
 
 let subst_tabletype s = function
   | TableT (at, lim, t) -> TableT (subst_addrtype s at, lim, subst_reftype s t)

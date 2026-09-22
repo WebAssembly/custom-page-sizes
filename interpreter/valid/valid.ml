@@ -718,13 +718,13 @@ let rec check_instr (c : context) (e : instr) (s : infer_resulttype) : infer_ins
       NumT (numtype_of_addrtype at)] --> [], []
 
   | MemoryCopy (x, y)->
-    let MemoryT (at1, _pt, _lib1) = memory c x in
-    let MemoryT (at2, _pt, _lib2) = memory c y in
+    let MemoryT (at1, _lim1, _pt1) = memory c x in
+    let MemoryT (at2, _lim2, _pt2) = memory c y in
     [NumT (numtype_of_addrtype at1); NumT (numtype_of_addrtype at2);
       NumT (numtype_of_addrtype (min at1 at2))] --> [], []
 
   | MemoryInit (x, y) ->
-    let MemoryT (at, _pt, _lib) = memory c x in
+    let MemoryT (at, _lim, _pt) = memory c x in
     let () = data c y in
     [NumT (numtype_of_addrtype at); NumT I32T; NumT I32T] --> [], []
 
