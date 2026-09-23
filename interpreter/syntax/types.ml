@@ -327,7 +327,7 @@ let string_of_addrtype at =
   string_of_numtype (numtype_of_addrtype at)
 
 let string_of_pagetype = function
-  | PageT ps -> I64.to_string_u (Int64.shift_left 1L ps)
+  | PageT p -> I64.to_string_u (Int64.shift_left 1L p)
 
 let string_of_vectype = function
   | V128T -> "v128"
