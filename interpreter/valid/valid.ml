@@ -205,15 +205,23 @@ let check_globaltype (c : context) (gt : globaltype) at =
 let check_memorytype (c : context) (mt : memorytype) at =
   let MemoryT (at_, lim, pt) = mt in
   check_pagetype pt at;
-  let sz, s =
-    match at_, pt with
-    | I32AT, PageT 16 -> 0x1_0000L, "2^16 pages (4 GiB) for i32"
-    | I64AT, PageT 16 -> 0x1_0000_0000_0000L, "2^48 pages (256 TiB) for i64"
-    (* TODO: divide by page size, what about error msg? *)
-    | I32AT, _ -> 0xFFFF_FFFFL, "2^32 - 1 bytes for i32"
-    | I64AT, _ -> 0xFFFF_FFFF_FFFF_FFFFL, "2^64 - 1 bytes for i64"
+  let PageT p = pt in
+  let bits = match at_ with I32AT -> 32 | I64AT -> 64 in
+  require (p <= bits) at
+    ("page size must be at most 2^" ^ string_of_int bits ^ " bytes for " ^
+      string_of_addrtype at_);
+  (* A memory of n pages spans n * 2^p bytes, so n is bounded both by the
+     largest value the address type can represent, 2^bits - 1, and by how many
+     pages fit in its address space, 2^bits / 2^p. The latter is the tighter
+     bound, except when pages are single bytes and 2^bits is not
+     representable. *)
+  let repr = I64.(shr_u (-1L) (of_int_u (64 - bits))) in
+  let sz =
+    if p = 0 then repr
+    else I64.(add (shr_u repr (of_int_u p)) 1L)
   in
-  check_limits lim sz at ("memory size must be at most " ^ s)
+  check_limits lim sz at ("memory size must be at most " ^
+    I64.to_string_u sz ^ " pages for " ^ string_of_addrtype at_)
 
 let check_tabletype (c : context) (tt : tabletype) at =
   let TableT (at_, lim, t) = tt in
@@ -706,13 +714,13 @@ let rec check_instr (c : context) (e : instr) (s : infer_resulttype) : infer_ins
       NumT (numtype_of_addrtype at)] --> [], []
 
   | MemoryCopy (x, y)->
-    let MemoryT (at1, _pt, _lib1) = memory c x in
-    let MemoryT (at2, _pt, _lib2) = memory c y in
+    let MemoryT (at1, _lim1, _pt1) = memory c x in
+    let MemoryT (at2, _lim2, _pt2) = memory c y in
     [NumT (numtype_of_addrtype at1); NumT (numtype_of_addrtype at2);
       NumT (numtype_of_addrtype (min at1 at2))] --> [], []
 
   | MemoryInit (x, y) ->
-    let MemoryT (at, _pt, _lib) = memory c x in
+    let MemoryT (at, _lim, _pt) = memory c x in
     let () = data c y in
     [NumT (numtype_of_addrtype at); NumT I32T; NumT I32T] --> [], []
 

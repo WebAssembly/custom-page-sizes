@@ -167,14 +167,14 @@ limits ::= 0x00 n:u64              ⇒ i32, {min n, max ϵ}, unshared, 65536
         |  0x05 n:u64 m:u64        ⇒ i64, {min n, max m}, unshared, 65536
         |  0x06 n:u64              ⇒ i64, {min n, max ϵ},   shared, 65536
         |  0x07 n:u64 m:u64        ⇒ i64, {min n, max m},   shared, 65536
-        |  0x08 n:u64       p:u32  ⇒ i32, {min n, max ϵ}, unshared, 2**p  if p <= 64
-        |  0x09 n:u64 m:u64 p:u32  ⇒ i32, {min n, max m}, unshared, 2**p  if p <= 64
-        |  0x0a n:u64       p:u32  ⇒ i32, {min n, max ϵ},   shared, 2**p  if p <= 64
-        |  0x0b n:u64 m:u64 p:u32  ⇒ i32, {min n, max m},   shared, 2**p  if p <= 64
-        |  0x0c n:u64       p:u32  ⇒ i64, {min n, max ϵ}, unshared, 2**p  if p <= 64
-        |  0x0d n:u64 m:u64 p:u32  ⇒ i64, {min n, max m}, unshared, 2**p  if p <= 64
-        |  0x0e n:u64       p:u32  ⇒ i64, {min n, max ϵ},   shared, 2**p  if p <= 64
-        |  0x0f n:u64 m:u64 p:u32  ⇒ i64, {min n, max m},   shared, 2**p  if p <= 64
+        |  0x08 n:u64       p:u32  ⇒ i32, {min n, max ϵ}, unshared, 2**p  if p < 64
+        |  0x09 n:u64 m:u64 p:u32  ⇒ i32, {min n, max m}, unshared, 2**p  if p < 64
+        |  0x0a n:u64       p:u32  ⇒ i32, {min n, max ϵ},   shared, 2**p  if p < 64
+        |  0x0b n:u64 m:u64 p:u32  ⇒ i32, {min n, max m},   shared, 2**p  if p < 64
+        |  0x0c n:u64       p:u32  ⇒ i64, {min n, max ϵ}, unshared, 2**p  if p < 64
+        |  0x0d n:u64 m:u64 p:u32  ⇒ i64, {min n, max m}, unshared, 2**p  if p < 64
+        |  0x0e n:u64       p:u32  ⇒ i64, {min n, max ϵ},   shared, 2**p  if p < 64
+        |  0x0f n:u64 m:u64 p:u32  ⇒ i64, {min n, max m},   shared, 2**p  if p < 64
 ```
 
 [limits-binary]: https://webassembly.github.io/spec/core/binary/types.html#limits
@@ -236,6 +236,9 @@ The [memory abbreviation] is extended to allow an optional page size as well:
 
     * The `pagesize` must be the value `1` or the value `65536`.
 
+    * The `pagesize` must be at most `2**32`, i.e. a single page must fit
+      within the memory's address space.[^pagesize-fits]
+
   * Replace
 
     > The `limits` must be valid within the range `2**16`.
@@ -245,6 +248,10 @@ The [memory abbreviation] is extended to allow an optional page size as well:
     * The `limits` must be valid within the range `2**32` - 1.
 
     * The `limits` must be valid within the range `2**32 / pagesize`
+
+[^pagesize-fits]: This is implied by the previous bullet point as long as the
+    only valid page sizes are `1` and `65536`, but it is the constraint that
+    must continue to hold if that set is ever relaxed to e.g. any power of two.
 
 #### Execution
 
