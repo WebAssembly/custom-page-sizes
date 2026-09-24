@@ -236,6 +236,9 @@ The [memory abbreviation] is extended to allow an optional page size as well:
 
     * The `pagesize` must be the value `1` or the value `65536`.
 
+    * The `pagesize` must be at most `2**32`, i.e. a single page must fit
+      within the memory's address space.[^pagesize-fits]
+
   * Replace
 
     > The `limits` must be valid within the range `2**16`.
@@ -245,6 +248,10 @@ The [memory abbreviation] is extended to allow an optional page size as well:
     * The `limits` must be valid within the range `2**32` - 1.
 
     * The `limits` must be valid within the range `2**32 / pagesize`
+
+[^pagesize-fits]: This is implied by the previous bullet point as long as the
+    only valid page sizes are `1` and `65536`, but it is the constraint that
+    must continue to hold if that set is ever relaxed to e.g. any power of two.
 
 #### Execution
 

@@ -290,7 +290,7 @@ let limits allow_pt uN s =
       if has_paget then
         let pos = pos s in
         let p = u32 s in
-        (* The page size is 2^ps bytes, and must fit in a u64. *)
+        (* The page size is 2^p bytes, and must fit in a u64. *)
         require (Int32.unsigned_compare p 64l < 0) s pos
           "invalid custom page size";
         Some (PageT (Int32.to_int p))

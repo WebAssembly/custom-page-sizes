@@ -120,7 +120,7 @@ let globaltype (GlobalT (mut, t)) =
 
 let pagetype = function
   | PageT 16 -> []  (* default page size, leave implicit *)
-  | PageT p -> [Node ("pagesize " ^ nat64 (Int64.shift_left 1L p), [])]
+  | PageT p -> [Node ("pagesize " ^ nat64 I64.(shl 1L (of_int_u p)), [])]
 
 let memorytype (MemoryT (at, lim, pt)) =
   Atom (addrtype at ^ " " ^ limits nat64 lim) :: pagetype pt

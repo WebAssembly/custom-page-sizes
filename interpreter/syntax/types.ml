@@ -327,7 +327,7 @@ let string_of_addrtype at =
   string_of_numtype (numtype_of_addrtype at)
 
 let string_of_pagetype = function
-  | PageT p -> I64.to_string_u (Int64.shift_left 1L p)
+  | PageT p -> I64.(to_string_u (shl 1L (of_int_u p)))
 
 let string_of_vectype = function
   | V128T -> "v128"
@@ -417,9 +417,9 @@ let string_of_globaltype = function
 let string_of_memorytype = function
   | MemoryT (at, lim, pt) ->
     string_of_addrtype at ^ " " ^ string_of_limits lim ^
-    (match pt with
+    match pt with
     | PageT 16 -> ""  (* default page size, leave implicit *)
-    | pt -> " (pagesize " ^ string_of_pagetype pt ^ ")")
+    | pt -> " (pagesize " ^ string_of_pagetype pt ^ ")"
 
 let string_of_tabletype = function
   | TableT (at, lim, t) ->

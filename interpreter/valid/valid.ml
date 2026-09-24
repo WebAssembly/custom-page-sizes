@@ -205,27 +205,23 @@ let check_globaltype (c : context) (gt : globaltype) at =
 let check_memorytype (c : context) (mt : memorytype) at =
   let MemoryT (at_, lim, pt) = mt in
   check_pagetype pt at;
-  let sz, s =
-    match at_, pt with
-    | I32AT, PageT 16 -> 0x1_0000L, "2^16 pages (4 GiB) for i32"
-    | I64AT, PageT 16 -> 0x1_0000_0000_0000L, "2^48 pages (256 TiB) for i64"
-    | _, PageT p ->
-      (* A memory of n pages spans n * 2^p bytes, so n is bounded both by the
-         largest value the address type can represent, 2^bits - 1, and by how
-         many pages fit in its address space, 2^bits / 2^p.  The latter does
-         not fit in a u64 when pages are single bytes, so take the minimum
-         one below the bound and add the one back afterwards. *)
-      let bits = match at_ with I32AT -> 32 | I64AT -> 64 in
-      let repr = Int64.shift_right_logical (-1L) (64 - bits) in
-      let fits = Int64.shift_right_logical repr p in
-      let sz =
-        if p > bits then 0L
-        else if I64.lt_u fits (Int64.sub repr 1L) then Int64.add fits 1L
-        else repr
-      in
-      sz, I64.to_string_u sz ^ " pages for " ^ string_of_addrtype at_
+  let PageT p = pt in
+  let bits = match at_ with I32AT -> 32 | I64AT -> 64 in
+  require (p <= bits) at
+    ("page size must be at most 2^" ^ string_of_int bits ^ " bytes for " ^
+      string_of_addrtype at_);
+  (* A memory of n pages spans n * 2^p bytes, so n is bounded both by the
+     largest value the address type can represent, 2^bits - 1, and by how many
+     pages fit in its address space, 2^bits / 2^p. The latter is the tighter
+     bound, except when pages are single bytes and 2^bits is not
+     representable. *)
+  let repr = I64.(shr_u (-1L) (of_int_u (64 - bits))) in
+  let sz =
+    if p = 0 then repr
+    else I64.(add (shr_u repr (of_int_u p)) 1L)
   in
-  check_limits lim sz at ("memory size must be at most " ^ s)
+  check_limits lim sz at ("memory size must be at most " ^
+    I64.to_string_u sz ^ " pages for " ^ string_of_addrtype at_)
 
 let check_tabletype (c : context) (tt : tabletype) at =
   let TableT (at_, lim, t) = tt in
