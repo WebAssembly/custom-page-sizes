@@ -420,6 +420,7 @@ Engines:
 
 * [x] [SpaceWasm](https://github.com/nasa/spacewasm/pull/84)
 * [x] [**SpiderMonkey (Firefox)**](https://bugzilla.mozilla.org/show_bug.cgi?id=1977854)
+* [x] [**Spec's Reference Interpreter**](https://github.com/WebAssembly/custom-page-sizes/pull/63)
 * [x] [toywasm](https://github.com/yamt/toywasm/pull/181)
 * [x] [WABT's interpreter](https://github.com/WebAssembly/wabt/pull/2502)
 * [x] [WABT's `wasm2c`](https://github.com/WebAssembly/wabt/pull/2508)
