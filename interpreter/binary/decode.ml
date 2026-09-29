@@ -287,7 +287,14 @@ let limits allow_pt uN s =
   let pt =
     if allow_pt then
       let has_paget = (flags land 8 = 8) in
-      Some (PageT (if has_paget then Int32.to_int (u32 s) else 16))
+      if has_paget then
+        let pos = pos s in
+        let p = u32 s in
+        (* The page size is 2^p bytes, and must fit in a u64. *)
+        require (I32.lt_u p 64l) s pos "invalid custom page size";
+        Some (PageT (Int32.to_int p))
+      else
+        Some (PageT 16)
     else
       None
   in
