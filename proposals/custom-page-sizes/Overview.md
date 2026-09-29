@@ -236,8 +236,9 @@ The [memory abbreviation] is extended to allow an optional page size as well:
 
     * The `pagesize` must be the value `1` or the value `65536`.
 
-    * The `pagesize` must be at most `2**32`, i.e. a single page must fit
-      within the memory's address space.[^pagesize-fits]
+    * The `pagesize` must be at most `2**32` for an `i32` memory, or `2**64`
+      for an `i64` memory; that is, a single page must fit within the memory's
+      address space.[^pagesize-fits]
 
   * Replace
 

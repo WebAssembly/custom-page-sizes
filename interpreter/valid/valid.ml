@@ -210,11 +210,6 @@ let check_memorytype (c : context) (mt : memorytype) at =
   require (p <= bits) at
     ("page size must be at most 2^" ^ string_of_int bits ^ " bytes for " ^
       string_of_addrtype at_);
-  (* A memory of n pages spans n * 2^p bytes, so n is bounded both by the
-     largest value the address type can represent, 2^bits - 1, and by how many
-     pages fit in its address space, 2^bits / 2^p. The latter is the tighter
-     bound, except when pages are single bytes and 2^bits is not
-     representable. *)
   let repr = I64.(shr_u (-1L) (of_int_u (64 - bits))) in
   let sz =
     if p = 0 then repr
